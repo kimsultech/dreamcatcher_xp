@@ -1,0 +1,18 @@
+{
+  "name": "dreamcatcher_xp",
+  "version": "1.0.0",
+  "description": "Bot Telegram to get XP and Show XP or leaderboard",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "KIMSUL",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.1",
+    "markdown-escape": "^1.1.0",
+    "node-postgres": "^0.6.2",
+    "node-telegram-bot-api": "^0.58.0",
+    "pg": "^8.7.3"
+  }
+}
