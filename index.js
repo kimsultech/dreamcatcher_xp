@@ -25,6 +25,13 @@ const pool = new Pool({
     database: PG_DB,
     password: PG_PASSWORD,
     port: PG_PORT,
+    options: { 
+        dialect: "postgres",
+        ssl: true, 
+        dialectOptions: {
+          ssl: true
+        }
+      }
 });
 
 
