@@ -13,14 +13,18 @@ const {Pool} = require('pg')
 const connectionString = process.env.POSTGRES_URL;
 const telegramToken = process.env.TELEGRAM_TOKEN;
 const GrupWhiteList = process.env.GROUP_WHITELIST;
+const PG_HOST = process.env.POSTGRES_HOST;
+const PG_USER = process.env.POSTGRES_USER;
+const PG_DB = process.env.POSTGRES_DATABASE;
+const PG_PASSWORD = process.env.POSTGRES_PASSWORD;
+const PG_PORT = process.env.POSTGRES_PORT;
 
 const pool = new Pool({
-    // host: '127.0.0.1',
-    // user: 'postgres',
-    // database: 'dreamcatcher_xp',
-    // password: 'apasaja911',
-    // port: 5432,
-    connectionString,
+    host: PG_HOST,
+    user: PG_USER,
+    database: PG_DB,
+    password: PG_PASSWORD,
+    port: PG_PORT,
 });
 
 
