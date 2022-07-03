@@ -124,7 +124,7 @@ async function getRandomXP(msg, match) {
     var XP_free = Math.floor(Math.random() * 15000) + 1
 
     var random1 = Math.floor(Math.random() * 200) + 1;
-    var random2 = Math.floor(Math.random() * 250) + 1;
+    var random2 = Math.floor(Math.random() * 150) + 1;
     console.log(random1 + ' & ' + random2);
     if (random1 === random2) {
         try {
