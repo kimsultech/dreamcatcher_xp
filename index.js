@@ -21,12 +21,6 @@ const pool = new Pool({
     // password: 'apasaja911',
     // port: 5432,
     connectionString,
-    dialect: "postgres",
-    native: true,
-    ssl: true, 
-    dialectOptions: {
-        ssl: true
-    }
 });
 
 
