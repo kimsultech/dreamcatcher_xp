@@ -402,6 +402,6 @@ async function infoRankJadwal(msg, match) {
         `🥇 ${withUser(users[0])} : ${xp_score.rows[0].xp} XP \n` +
         `🥈 ${withUser(users[1])} : ${xp_score.rows[1].xp} XP \n` +
         `🥉 ${withUser(users[2])} : ${xp_score.rows[2].xp} XP\n\n` +
-        `Teruslah berinterakasi untuk meningkatkan XP dan menaikan Level, dengan tetap mematuhi Aturan tentunya.`,
+        `Teruslah berinterakasi untuk meningkatkan XP dan menaikan Level, dengan tetap mematuhi Aturan tentunya.\n\nSchedule test jam 9 @sultan_namja`,
         { parse_mode: 'html', disable_notification: true }, msg);
 }
