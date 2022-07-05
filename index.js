@@ -337,7 +337,7 @@ async function displayLevel(msg, match) {
 
     const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
 
-    if (!xpData.length) {
+    if (!xpData.rows.length) {
         bot.sendMessage(chatId, "Level kamu masih 0 👶", {reply_to_message_id: msg.message_id});
         return;
     }
