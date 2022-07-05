@@ -30,7 +30,7 @@ const pool = new Pool({
 
 var level = [
     {"level_name": "Kang Nyimak", "level_xp": 0, "level": 1},
-    {"level_name": "Mulai Aktif", "level_xp": 1000, "level": 2},
+    {"level_name": "Mulai Aktif", "level_xp": 500, "level": 2},
     {"level_name": "Chase Me", "level_xp": 1500, "level": 3},
     {"level_name": "Good Night", "level_xp": 2000, "level": 4},
     {"level_name": "Fly High", "level_xp": 2500, "level": 5},
