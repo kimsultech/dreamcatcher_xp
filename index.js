@@ -330,6 +330,11 @@ async function displayLevel(msg, match) {
     const userId = msg.from.id;
     const key = chatId + userId;
 
+    if (msg.chat.type == "private") {
+        bot.sendMessage(chatId, "Ceknya di grup, Private Chat ngak nampilin level...", {reply_to_message_id: msg.message_id});
+        return;
+    }
+
     const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
 
     let level_get = ``;
