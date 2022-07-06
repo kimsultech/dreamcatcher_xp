@@ -371,7 +371,7 @@ async function displayLevel(msg, match) {
 
 var now = new Date();
 console.log(now);
-var millisTill10 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 21, 00, 0, 0) - now;
+var millisTill10 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 14, 00, 0, 0) - now;
 if (millisTill10 < 0) {
      millisTill10 += 86400000; // it's after 10am, try 10am tomorrow.
 }
@@ -402,6 +402,6 @@ async function infoRankJadwal(msg, match) {
         `🥇 ${withUser(users[0])} : ${xp_score.rows[0].xp} XP \n` +
         `🥈 ${withUser(users[1])} : ${xp_score.rows[1].xp} XP \n` +
         `🥉 ${withUser(users[2])} : ${xp_score.rows[2].xp} XP\n\n` +
-        `Teruslah berinterakasi untuk meningkatkan XP dan menaikan Level, dengan tetap mematuhi Aturan tentunya.\n\nSchedule test jam 9 @sultan_namja`,
+        `Teruslah berinterakasi untuk meningkatkan XP dan menaikan Level, dengan tetap mematuhi Aturan tentunya.`,
         { parse_mode: 'html', disable_notification: true }, msg);
 }
