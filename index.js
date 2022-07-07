@@ -63,6 +63,8 @@ bot.onText(/\/start/, displayStart);
 bot.onText(/\/help/, displayHelp);
 bot.onText(/\/xp(@\w+)?/, displayXP);
 bot.onText(/\/topranks(@\w+)?/, displayTopRanks);
+bot.onText(/\/ranks (.+)/, displayRanks);
+bot.onText(/\/ranks(@\w+)?/, displayRankHelp);
 bot.onText(/\/level(@\w+)?/, displayLevel);
 
 async function incrementXP(msg, match) {
@@ -366,12 +368,12 @@ async function displayLevel(msg, match) {
     }
     
 
-    bot.sendMessage(chatId, level_get);
+    bot.sendMessage(chatId, level_get, {reply_to_message_id: msg.message_id});
 }
 
 var now = new Date();
 console.log(now);
-var millisTill10 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 14, 00, 0, 0) - now;
+var millisTill10 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 00, 0, 0) - now;
 if (millisTill10 < 0) {
      millisTill10 += 86400000; // it's after 10am, try 10am tomorrow.
 }
@@ -403,5 +405,52 @@ async function infoRankJadwal(msg, match) {
         `🥈 ${withUser(users[1])} : ${xp_score.rows[1].xp} XP \n` +
         `🥉 ${withUser(users[2])} : ${xp_score.rows[2].xp} XP\n\n` +
         `Teruslah berinterakasi untuk meningkatkan XP dan menaikan Level, dengan tetap mematuhi Aturan tentunya.`,
+        { parse_mode: 'html', disable_notification: true }, msg);
+}
+
+async function displayRanks(msg, match) {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const key = chatId + userId;
+
+    if (msg.chat.type == "private") {
+        bot.sendMessage(chatId, "Hanya kamu Nomor Satu disini, cek di Grup dong!...", {reply_to_message_id: msg.message_id});
+        return;
+    }
+
+    let xp_score = [];
+
+    if (!isNaN(parseInt(match[1]))) {
+        xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT $2;', [chatId, parseInt(match[1])]);
+    } else {
+        xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT 5;', [chatId]);
+    }
+    
+    //console.log(match);
+
+    let users = [];
+    for (let i = 0; i < xp_score.rows.length; i++) {
+        const member = await bot.getChatMember(chatId, xp_score.rows[i].uid);
+        if (member && member.user)
+            users.push(`${i+1}. <b>${member.user.first_name + ' ' + member.user.last_name}</b> : ${xp_score.rows[i].xp} XP`);
+        else
+            users[i] = {id: 0, first_name: 'Anonymous'};
+    }
+
+
+    bot.sendMessage(chatId, users.join('\n'),
+        { parse_mode: 'html', disable_notification: true }, msg);
+}
+
+async function displayRankHelp(msg, match) {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const key = chatId + userId;
+
+    if (match.input !== '/ranks') {
+        return;
+    }
+
+    bot.sendMessage(chatId, `ada yang kurang nichh!\nharusnya <pre>/ranks nilai</pre>\ncontoh <pre>/ranks 10</pre>\n\nmaka akan menampilkan rank dari 1 sampai 10.`,
         { parse_mode: 'html', disable_notification: true }, msg);
 }
