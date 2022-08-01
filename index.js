@@ -450,7 +450,13 @@ async function displayRanks(msg, match) {
     let xp_score = [];
 
     if (!isNaN(parseInt(match[1]))) {
-        xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT $2;', [chatId, parseInt(match[1])]);
+        var nilai = 0;
+        if (parseInt(match[1]) > 40) {
+            nilai = 40
+        } else {
+            nilai = parseInt(match[1])
+        }
+        xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT $2;', [chatId, nilai]);
     } else {
         xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT 5;', [chatId]);
     }
