@@ -466,7 +466,6 @@ async function displayRanks(msg, match) {
     let users = [];
     for (let i = 0; i < xp_score.rows.length; i++) {
         const member = await bot.getChatMember(chatId, xp_score.rows[i].uid);
-        console.log(member);
         if (member && member.user) {
             var fn = '';
             var ln = '';
