@@ -44,7 +44,7 @@ var level = [
     {"level_name": "BEcause", "level_xp": 6500, "level": 13},
     {"level_name": "Maison", "level_xp": 7000, "level": 14},
     {"level_name": "DREAMCATCHER", "level_xp": 10000, "level": 15},
-    {"level_name": "ADMIN", "level_xp": 9999999999, "level": 20}
+    {"level_name": "ADMIN", "level_xp": 9999999, "level": 20}
 ]
 
 // Create a bot that uses 'polling' to fetch new updates
