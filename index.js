@@ -44,7 +44,7 @@ var level = [
     {"level_name": "BEcause", "level_xp": 6500, "level": 13},
     {"level_name": "Maison", "level_xp": 7000, "level": 14},
     {"level_name": "DREAMCATCHER", "level_xp": 10000, "level": 15},
-    {"level_name": "ADMIN", "level_xp": 9999999, "level": 20}
+    {"level_name": "Si Paling Aktif", "level_xp": 9999999, "level": 20}
 ]
 
 // Create a bot that uses 'polling' to fetch new updates
@@ -155,7 +155,7 @@ async function getRandomXP(msg, match) {
 
     const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
 
-    var XP_free = Math.floor(Math.random() - 5) + 1
+    var XP_free = Math.floor(Math.random() + 5) + 1
 
     var random1 = Math.floor(Math.random() * 521) + 1;
     var random2 = Math.floor(Math.random() * 1000) + 1;
@@ -200,7 +200,21 @@ async function nextLevel(msg, match) {
                         WHERE guid = $2`, [level_now[level_now.length-1].level_xp, key]
     );
 
-    let levelUp = `🌟 <b>${member.user.first_name + ' ' + member.user.last_name}</b> telah mencapai level ${level_now[level_now.length-2].level} dan sekarang menjadi <b>${level_now[level_now.length-2].level_name}</b>!`;
+    var fn = '';
+    var ln = '';
+    if (member.user.first_name != undefined) {
+        fn = member.user.first_name + ' '
+    } else {
+        fn = ''
+    }
+        
+    if (member.user.last_name != undefined) {
+        ln = member.user.last_name
+    } else {
+        ln = ''
+    }
+
+    let levelUp = `🌟 <b>${fn + ln}</b> telah mencapai level ${level_now[level_now.length-2].level} dan sekarang menjadi <b>${level_now[level_now.length-2].level_name}</b>!`;
     
 
     bot.sendMessage(chatId, levelUp, {parse_mode: "html"});
@@ -303,7 +317,21 @@ async function displayTopRanks(msg, match) {
 }
 
 function withUser(user) {
-    return user.first_name + ' ' + user.last_name;
+    var fn = '';
+    var ln = '';
+    if (user.first_name != undefined) {
+        fn = user.first_name + ' '
+    } else {
+        fn = ''
+    }
+        
+    if (user.last_name != undefined) {
+        ln = user.last_name
+    } else {
+        ln = ''
+    }
+
+    return fn + ln;
     //return `[${user.first_name}](tg://user?id=${user.id})`;
 }
 
@@ -432,10 +460,24 @@ async function displayRanks(msg, match) {
     let users = [];
     for (let i = 0; i < xp_score.rows.length; i++) {
         const member = await bot.getChatMember(chatId, xp_score.rows[i].uid);
-        if (member && member.user)
-            users.push(`${i+1}. <b>${member.user.first_name + ' ' + member.user.last_name}</b> : ${xp_score.rows[i].xp} XP`);
-        else
+        if (member && member.user) {
+            var fn = '';
+            var ln = '';
+            if (member.user.first_name != undefined) {
+                fn = member.user.first_name + ' '
+            } else {
+                fn = ''
+            }
+                
+            if (member.user.last_name != undefined) {
+                ln = member.user.last_name
+            } else {
+                ln = ''
+            }
+            users.push(`${i+1}. <b>${fn + ln}</b> : ${xp_score.rows[i].xp} XP`);
+        } else {
             users[i] = {id: 0, first_name: 'Anonymous'};
+        }
     }
 
 
