@@ -11,6 +11,10 @@
  * `POSTGRES_DATABASE` Postgresql Database name
  * `POSTGRES_PASSWORD` Postgresql Password
  * `POSTGRES_PORT` Postgresql port
+ * `MODERATE_ON` set true/false so that some types of chat can only be sent if xp is more than min xp
+ * `MIN_XP` if MODERATE_ON set true, set MIN_XP (default 500)
+ * `LESS_BOT_SPAM` set true/false to automatically delete chats from bots based on time BOT_EXPIRATION
+ * `BOT_EXPIRATION` (default 3)
  * Import db to your Postgresql database, if there is an error when importing, ignore the important thing the table is all there.
  
 See .env_example change to .env and change the contents , or set Config Vars on heroku.
