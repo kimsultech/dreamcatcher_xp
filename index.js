@@ -10,7 +10,7 @@ const escapeMD = require('markdown-escape');
 
 const {Pool} = require('pg')
 
-const connectionString = process.env.POSTGRES_URL;
+//const connectionString = process.env.POSTGRES_URL;
 const telegramToken = process.env.TELEGRAM_TOKEN;
 const GrupWhiteList = process.env.GROUP_WHITELIST;
 const PG_HOST = process.env.POSTGRES_HOST;
@@ -18,6 +18,10 @@ const PG_USER = process.env.POSTGRES_USER;
 const PG_DB = process.env.POSTGRES_DATABASE;
 const PG_PASSWORD = process.env.POSTGRES_PASSWORD;
 const PG_PORT = process.env.POSTGRES_PORT;
+const minXP = parseInt(process.env.MIN_XP) || 500;
+const moderateMode = process.env.MODERATE_ON == "true";
+const lessBotSpam = process.env.LESS_BOT_SPAM == "true";
+const botExpiration = (process.env.BOT_EXPIRATION || 3) * 1000;
 
 const pool = new Pool({
     host: PG_HOST,
@@ -44,7 +48,7 @@ var level = [
     {"level_name": "BEcause", "level_xp": 6500, "level": 13},
     {"level_name": "Maison", "level_xp": 7000, "level": 14},
     {"level_name": "DREAMCATCHER", "level_xp": 10000, "level": 15},
-    {"level_name": "Si Paling Aktif", "level_xp": 9999999, "level": 20}
+    {"level_name": "Onwer", "level_xp": 999999999999999999, "level": 99999} // change type column xp and next_xp on database from integer to bigint
 ]
 
 // Create a bot that uses 'polling' to fetch new updates
@@ -109,6 +113,32 @@ async function incrementXP(msg, match) {
     if (msg.text && msg.text.match(/\/start/))
         return;
 
+    const entities = msg.entities || [];
+    const isLink = entities.find(e => e.type == 'url');
+
+    if (moderateMode) {
+        if (isLink)
+            if (!(await moderateContent(msg, match)))
+                return;
+    
+        if (msg.photo)
+            if (!(await moderateContent(msg, match)))
+                return;
+
+        if (msg.document)
+            if (!(await moderateContent(msg, match)))
+                return;
+
+        if (msg.video)
+            if (!(await moderateContent(msg, match)))
+                return;
+
+        if (msg.voice)
+            if (!(await moderateContent(msg, match)))
+                return;
+    }
+
+    
     try {
         const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
 
@@ -126,7 +156,7 @@ async function incrementXP(msg, match) {
             try {
                 await pool.query(
                     `UPDATE users.users SET xp = $1
-                    WHERE guid = $2`, [xpData.rows[0].xp + xp_rate, key]);
+                    WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + xp_rate, key]);
                 
                 getRandomXP(msg, match);
 
@@ -155,7 +185,7 @@ async function getRandomXP(msg, match) {
 
     const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
 
-    var XP_free = Math.floor(Math.random() + 5) + 1
+    var XP_free = Math.floor(Math.random() * 200) + 1;
 
     var random1 = Math.floor(Math.random() * 521) + 1;
     var random2 = Math.floor(Math.random() * 1000) + 1;
@@ -200,23 +230,8 @@ async function nextLevel(msg, match) {
                         WHERE guid = $2`, [level_now[level_now.length-1].level_xp, key]
     );
 
-    var fn = '';
-    var ln = '';
-    if (member.user.first_name != undefined) {
-        fn = member.user.first_name + ' '
-    } else {
-        fn = ''
-    }
-        
-    if (member.user.last_name != undefined) {
-        ln = member.user.last_name
-    } else {
-        ln = ''
-    }
-
-    let levelUp = `🌟 <b>${fn + ln}</b> telah mencapai level ${level_now[level_now.length-2].level} dan sekarang menjadi <b>${level_now[level_now.length-2].level_name}</b>!`;
+    let levelUp = `🌟 ${withUser(member.user)} telah mencapai level ${level_now[level_now.length-2].level} dan sekarang menjadi <b>${level_now[level_now.length-2].level_name}</b>!`;
     
-
     bot.sendMessage(chatId, levelUp, {parse_mode: "html"});
 }
 
@@ -234,13 +249,13 @@ async function displayXP(msg, match) {
     if (msg.reply_to_message) {
         const xp_score = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [chatId + msg.reply_to_message.from.id]);
         const user_info = await bot.getChatMember(chatId, msg.reply_to_message.from.id);
-        console.log(msg.reply_to_message.photo);
+
         if (!xp_score.rows.length) {
-            bot.sendMessage(chatId, `XP ${user_info.user.first_name} masih 0 👶`, {reply_to_message_id: msg.reply_to_message.message_id});
+            bot.sendMessage(chatId, `XP ${withUser(user_info.user)} masih 0 👶`, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
             return;
         }
 
-        bot.sendMessage(chatId, `XP ${user_info.user.first_name} saat ini ` + xp_score.rows[0].xp, {reply_to_message_id: msg.reply_to_message.message_id});
+        bot.sendMessage(chatId, `XP ${withUser(user_info.user)} saat ini ` + xp_score.rows[0].xp, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
         return;
     }
 
@@ -261,8 +276,6 @@ async function displayXP(msg, match) {
         }
     }
 
-    console.log(xp_score);
-    console.log(xp_score.length);
 
     if (!xp_score.length) {
         bot.sendMessage(chatId, "XP kamu masih 0 👶", {reply_to_message_id: msg.message_id});
@@ -331,8 +344,8 @@ function withUser(user) {
         ln = ''
     }
 
-    return fn + ln;
-    //return `[${user.first_name}](tg://user?id=${user.id})`;
+    //return fn + ln;
+    return `<a href='tg://user?id=${user.id}'>${fn + ln}</a>`;
 }
 
 async function displayHelp(msg, match) {
@@ -380,12 +393,12 @@ async function displayLevel(msg, match) {
         const user_info = await bot.getChatMember(chatId, msg.reply_to_message.from.id);
         for (let i = 0; i < level.length; i++) {
             if (xpData2.rows[0].xp > level[i].level_xp) {
-                level_get = `${user_info.user.first_name} lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData2.rows[0].xp} XP.\n` +
+                level_get = `${withUser(user_info.user)} lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData2.rows[0].xp} XP.\n` +
                 `butuh ${level[i+1].level_xp - xpData2.rows[0].xp} XP lagi untuk ke Level ${level[i+1].level}`;
             }
         }
 
-        bot.sendMessage(chatId, level_get, {reply_to_message_id: msg.reply_to_message.message_id});
+        bot.sendMessage(chatId, level_get, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
         return;
     }
 
@@ -461,26 +474,12 @@ async function displayRanks(msg, match) {
         xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT 5;', [chatId]);
     }
     
-    //console.log(match);
 
     let users = [];
     for (let i = 0; i < xp_score.rows.length; i++) {
         const member = await bot.getChatMember(chatId, xp_score.rows[i].uid);
         if (member && member.user) {
-            var fn = '';
-            var ln = '';
-            if (member.user.first_name != undefined) {
-                fn = member.user.first_name + ' '
-            } else {
-                fn = ''
-            }
-                
-            if (member.user.last_name != undefined) {
-                ln = member.user.last_name
-            } else {
-                ln = ''
-            }
-            users.push(`${i+1}. <b>${fn + ln}</b> : ${xp_score.rows[i].xp} XP`);
+            users.push(`${i+1}. ${withUser(member.user)} : ${xp_score.rows[i].xp} XP`);
         } else {
             users[i] = {id: 0, first_name: 'Anonymous'};
         }
@@ -502,4 +501,35 @@ async function displayRankHelp(msg, match) {
 
     bot.sendMessage(chatId, `ada yang kurang nichh!\nharusnya <pre>/ranks nilai</pre>\ncontoh <pre>/ranks 10</pre>\n\nmaka akan menampilkan rank dari 1 sampai 10.`,
         { parse_mode: 'html', disable_notification: true }, msg);
+}
+
+async function moderateContent(msg, match) {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const key = chatId + userId;
+
+    if (msg.chat.type == "private")
+        return;
+
+    const data_user = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
+    const score = data_user.rows[0].xp;
+
+    if (score < minXP) {
+        bot.deleteMessage(chatId, msg.message_id);
+
+        bot.sendMessageNoSpam(chatId, `Maaf YGY, tapi kamu ${withUser(msg.from)} tidak bisa mengirimkan itu, karena XP atau Level kamu masih kurang. Banyak banyakin Interaksi di grup YGY 😚...`, { parse_mode: 'html', disable_notification: true });
+        return false;
+    }
+
+    return true;
+}
+
+bot.sendMessageNoSpam = async (gid, text, options, queryMsg) => {
+    const msg = await bot.sendMessage(gid, text, options);
+    if (lessBotSpam)
+        setTimeout(() => {
+            if (queryMsg)
+                bot.deleteMessage(gid, queryMsg.message_id);
+            bot.deleteMessage(gid, msg.message_id);
+        }, botExpiration);
 }
