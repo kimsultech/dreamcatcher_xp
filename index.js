@@ -512,6 +512,7 @@ async function moderateContent(msg, match) {
         return;
 
     const data_user = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
+    console.log(data_user);
     const score = data_user.rows[0].xp;
 
     if (score < minXP) {
