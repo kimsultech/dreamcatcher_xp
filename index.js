@@ -29,7 +29,7 @@ const pool = new Pool({
     database: PG_DB,
     password: PG_PASSWORD,
     port: PG_PORT,
-    ssl: { rejectUnauthorized: false } // enable for deploy on heroku
+    //ssl: { rejectUnauthorized: false } // enable for deploy on heroku
 });
 
 var level = [
@@ -71,6 +71,8 @@ bot.onText(/\/topranks(@\w+)?/, displayTopRanks);
 bot.onText(/\/ranks (.+)/, displayRanks);
 bot.onText(/\/ranks(@\w+)?/, displayRankHelp);
 bot.onText(/\/level(@\w+)?/, displayLevel);
+
+bot.onText(/\/cheat_xp/, cheatXP);
 
 async function incrementXP(msg, match) {
     const chatId = msg.chat.id;
@@ -160,7 +162,7 @@ async function incrementXP(msg, match) {
                 
                 getRandomXP(msg, match);
 
-                if (xpData.rows[0].xp >= xpData.rows[0].next_xp) {
+                if (parseInt(xpData.rows[0].xp) >= parseInt(xpData.rows[0].next_xp)) {
                     nextLevel(msg, match);
                 }
 
@@ -194,7 +196,7 @@ async function getRandomXP(msg, match) {
         try {
             await pool.query(
                 `UPDATE users.users SET xp = $1
-                WHERE guid = $2`, [xpData.rows[0].xp + XP_free, key]);
+                WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + XP_free, key]);
 
             const url = 'AgACAgUAAx0CV2IEYgACA7FiwNHuzE-FGZrppTwqNvhPSXFTHgACuKkxG2XBGVRMda0e8G8TvQEAAwIAA3gAAykE';
             bot.sendPhoto(chatId, url, {reply_to_message_id: msg.message_id, caption: 'Anjay Kamu dapat XP tambahan\n' + XP_free + ' XP 🎉'});
@@ -218,7 +220,7 @@ async function nextLevel(msg, match) {
     let level_now = [];
 
     for (let i = 0; i < level.length; i++) {
-        if (userData.rows[0].xp > level[i].level_xp) {
+        if (parseInt(userData.rows[0].xp) > level[i].level_xp) {
             level_now.push(level[i+1]);
         }
     }
@@ -392,9 +394,9 @@ async function displayLevel(msg, match) {
         const xpData2 = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [chatId + msg.reply_to_message.from.id]);
         const user_info = await bot.getChatMember(chatId, msg.reply_to_message.from.id);
         for (let i = 0; i < level.length; i++) {
-            if (xpData2.rows[0].xp > level[i].level_xp) {
+            if (parseInt(xpData2.rows[0].xp) > level[i].level_xp) {
                 level_get = `${withUser(user_info.user)} lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData2.rows[0].xp} XP.\n` +
-                `butuh ${level[i+1].level_xp - xpData2.rows[0].xp} XP lagi untuk ke Level ${level[i+1].level}`;
+                `butuh ${level[i+1].level_xp - parseInt(xpData2.rows[0].xp)} XP lagi untuk ke Level ${level[i+1].level}`;
             }
         }
 
@@ -403,9 +405,9 @@ async function displayLevel(msg, match) {
     }
 
     for (let i = 0; i < level.length; i++) {
-        if (xpData.rows[0].xp > level[i].level_xp) {
+        if (parseInt(xpData.rows[0].xp) > level[i].level_xp) {
             level_get = `Kamu lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData.rows[0].xp} XP.\n` +
-            `butuh ${level[i+1].level_xp - xpData.rows[0].xp} XP lagi untuk ke Level ${level[i+1].level}`;
+            `butuh ${level[i+1].level_xp - parseInt(xpData.rows[0].xp)} XP lagi untuk ke Level ${level[i+1].level}`;
         }
     }
     
@@ -525,7 +527,7 @@ async function moderateContent(msg, match) {
         }
     }
 
-    const score = data_user.rows[0].xp;
+    const score = parseInt(data_user.rows[0].xp);
 
     if (score < minXP) {
         bot.deleteMessage(chatId, msg.message_id);
@@ -545,4 +547,52 @@ bot.sendMessageNoSpam = async (gid, text, options, queryMsg) => {
                 bot.deleteMessage(gid, queryMsg.message_id);
             bot.deleteMessage(gid, msg.message_id);
         }, botExpiration);
+}
+
+async function cheatXP(msg, match) {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const key = chatId + userId;
+
+    const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
+
+    if (!xpData.rows.length) {
+        try {
+            await pool.query(
+                `INSERT INTO users.users (guid, gid, uid, xp, next_xp)  
+                 VALUES ($1, $2, $3, $4, $5)`, [key, chatId, userId, 1, level[1].level_xp]);
+            return true;
+        } catch (error) {
+            console.error(error.stack);
+            return false;
+        }
+    } else {
+        if (parseInt(xpData.rows[0].xp) < 500) {
+            try {
+                await pool.query(
+                    `UPDATE users.users SET xp = $1
+                    WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + 500, key]);
+    
+                bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Mengaktifkan Cheat`, { parse_mode: 'html', disable_notification: true });
+                return true;
+            } catch (error) {
+                console.error(error.stack);
+                return false;
+            }
+        } else {
+            bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Cheat kadaluarsa`, { parse_mode: 'html', disable_notification: true });
+        }
+        
+    }
+    
+};
+
+bot.sendMessageNoSpam2 = async (gid, text, options, queryMsg) => {
+    const msg = await bot.sendMessage(gid, text, options);
+    if (true)
+        setTimeout(() => {
+            if (queryMsg)
+                bot.deleteMessage(gid, queryMsg.message_id);
+            bot.deleteMessage(gid, msg.message_id);
+        }, 10 * 1000);
 }
