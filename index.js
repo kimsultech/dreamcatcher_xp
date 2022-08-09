@@ -512,8 +512,20 @@ async function moderateContent(msg, match) {
         return;
 
     const data_user = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
-    console.log(data_user);
-    const score = data_user.xp;
+
+    if (!data_user.rows.length) {
+        try {
+            await pool.query(
+                `INSERT INTO users.users (guid, gid, uid, xp, next_xp)  
+                 VALUES ($1, $2, $3, $4, $5)`, [key, chatId, userId, 1, level[1].level_xp]);
+            return true;
+        } catch (error) {
+            console.error(error.stack);
+            return false;
+        }
+    }
+
+    const score = data_user.rows[0].xp;
 
     if (score < minXP) {
         bot.deleteMessage(chatId, msg.message_id);
