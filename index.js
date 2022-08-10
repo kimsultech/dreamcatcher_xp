@@ -22,6 +22,7 @@ const minXP = parseInt(process.env.MIN_XP) || 500;
 const moderateMode = process.env.MODERATE_ON == "true";
 const lessBotSpam = process.env.LESS_BOT_SPAM == "true";
 const botExpiration = (process.env.BOT_EXPIRATION || 3) * 1000;
+const skipRank = (parseInt(process.env.SKIP_RANK) || 1) + 1;
 
 const pool = new Pool({
     host: PG_HOST,
@@ -48,7 +49,7 @@ var level = [
     {"level_name": "BEcause", "level_xp": 6500, "level": 13},
     {"level_name": "Maison", "level_xp": 7000, "level": 14},
     {"level_name": "DREAMCATCHER", "level_xp": 10000, "level": 15},
-    {"level_name": "Onwer", "level_xp": 999999999999999999, "level": 99999} // change type column xp and next_xp on database from integer to bigint
+    {"level_name": "Onwer", "level_xp": 999999999999999999, "level": 9999999} // change type column xp and next_xp on database from integer to bigint
 ]
 
 // Create a bot that uses 'polling' to fetch new updates
@@ -159,7 +160,11 @@ async function incrementXP(msg, match) {
                 await pool.query(
                     `UPDATE users.users SET xp = $1
                     WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + xp_rate, key]);
-                
+
+                if (isLink) {
+                    infoChatLink(msg, match);
+                }
+
                 getRandomXP(msg, match);
 
                 if (parseInt(xpData.rows[0].xp) >= parseInt(xpData.rows[0].next_xp)) {
@@ -179,6 +184,14 @@ async function incrementXP(msg, match) {
     }
     
 };
+
+async function infoChatLink(msg, match) {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const key = chatId + userId;
+
+    bot.sendMessageNoSpam2(chatId, `Pastikan Link yang baru aja kamu Share ${withUser(msg.from)} ada hubungannya dengan DREAMCATCHER dan sudah sesuai dengan aturan grup.`, { parse_mode: 'html', disable_notification: true });
+}
 
 async function getRandomXP(msg, match) {
     const chatId = msg.chat.id;
@@ -304,15 +317,15 @@ async function displayTopRanks(msg, match) {
         return;
     }
 
-    const xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT 3;', [chatId]);
+    const xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT $2;', [chatId, skipRank + 3]);
 
     console.log(xp_score.rows);
 
     let users = [];
-    for (let i = 0; i < xp_score.rows.length; i++) {
+    for (let i = skipRank-1; i < xp_score.rows.length; i++) {
         const member = await bot.getChatMember(chatId, xp_score.rows[i].uid);
         if (member && member.user)
-            users[i] = member.user;
+            users[i-(skipRank-1)] = member.user;
         else
             users[i] = {id: 0, first_name: 'Anonymous'};
     }
@@ -325,9 +338,9 @@ async function displayTopRanks(msg, match) {
     }
 
     bot.sendMessage(chatId,
-        `🥇 ${withUser(users[0])} : ${xp_score.rows[0].xp} XP \n` +
-        `🥈 ${withUser(users[1])} : ${xp_score.rows[1].xp} XP \n` +
-        `🥉 ${withUser(users[2])} : ${xp_score.rows[2].xp} XP`,
+        `🥇 ${withUser(users[0])} : ${xp_score.rows[0+(skipRank-1)].xp} XP \n` +
+        `🥈 ${withUser(users[1])} : ${xp_score.rows[1+(skipRank-1)].xp} XP \n` +
+        `🥉 ${withUser(users[2])} : ${xp_score.rows[2+(skipRank-1)].xp} XP`,
         { parse_mode: 'html', disable_notification: true }, msg);
 }
 
@@ -426,13 +439,13 @@ setTimeout(infoRankJadwal, millisTill10);
 async function infoRankJadwal(msg, match) {
     const chatId = GrupWhiteListArray[0]
 
-    const xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT 3;', [chatId]);
+    const xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT $2;', [chatId, skipRank + 3]);
 
     let users = [];
-    for (let i = 0; i < xp_score.rows.length; i++) {
+    for (let i = skipRank-1; i < xp_score.rows.length; i++) {
         const member = await bot.getChatMember(chatId, xp_score.rows[i].uid);
         if (member && member.user)
-            users[i] = member.user;
+            users[i-(skipRank-1)] = member.user;
         else
             users[i] = {id: 0, first_name: 'Anonymous'};
     }
@@ -445,9 +458,9 @@ async function infoRankJadwal(msg, match) {
     }
 
     bot.sendMessage(chatId, `<b>Top 3 Rank saat ini</b>\n\n` +
-        `🥇 ${withUser(users[0])} : ${xp_score.rows[0].xp} XP \n` +
-        `🥈 ${withUser(users[1])} : ${xp_score.rows[1].xp} XP \n` +
-        `🥉 ${withUser(users[2])} : ${xp_score.rows[2].xp} XP\n\n` +
+        `🥇 ${withUser(users[0])} : ${xp_score.rows[0+(skipRank-1)].xp} XP \n` +
+        `🥈 ${withUser(users[1])} : ${xp_score.rows[1+(skipRank-1)].xp} XP \n` +
+        `🥉 ${withUser(users[2])} : ${xp_score.rows[2+(skipRank-1)].xp} XP\n\n` +
         `Teruslah berinterakasi untuk meningkatkan XP dan menaikan Level, dengan tetap mematuhi Aturan tentunya.`,
         { parse_mode: 'html', disable_notification: true }, msg);
 }
@@ -478,10 +491,10 @@ async function displayRanks(msg, match) {
     
 
     let users = [];
-    for (let i = 0; i < xp_score.rows.length; i++) {
+    for (let i = skipRank-1; i < xp_score.rows.length; i++) {
         const member = await bot.getChatMember(chatId, xp_score.rows[i].uid);
         if (member && member.user) {
-            users.push(`${i+1}. ${withUser(member.user)} : ${xp_score.rows[i].xp} XP`);
+            users.push(`${i}. ${withUser(member.user)} : ${xp_score.rows[i].xp} XP`);
         } else {
             users[i] = {id: 0, first_name: 'Anonymous'};
         }
@@ -549,6 +562,44 @@ bot.sendMessageNoSpam = async (gid, text, options, queryMsg) => {
         }, botExpiration);
 }
 
+// async function cheatXP(msg, match) {
+//     const chatId = msg.chat.id;
+//     const userId = msg.from.id;
+//     const key = chatId + userId;
+
+//     const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
+
+//     if (!xpData.rows.length) {
+//         try {
+//             await pool.query(
+//                 `INSERT INTO users.users (guid, gid, uid, xp, next_xp)  
+//                  VALUES ($1, $2, $3, $4, $5)`, [key, chatId, userId, 1, level[1].level_xp]);
+//             return true;
+//         } catch (error) {
+//             console.error(error.stack);
+//             return false;
+//         }
+//     } else {
+//         if (parseInt(xpData.rows[0].xp) < 500) {
+//             try {
+//                 await pool.query(
+//                     `UPDATE users.users SET xp = $1
+//                     WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + 500, key]);
+    
+//                 bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Mengaktifkan Cheat`, { parse_mode: 'html', disable_notification: true });
+//                 return true;
+//             } catch (error) {
+//                 console.error(error.stack);
+//                 return false;
+//             }
+//         } else {
+//             bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Cheat kadaluarsa`, { parse_mode: 'html', disable_notification: true });
+//         }
+        
+//     }
+    
+// };
+
 async function cheatXP(msg, match) {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
@@ -567,22 +618,7 @@ async function cheatXP(msg, match) {
             return false;
         }
     } else {
-        if (parseInt(xpData.rows[0].xp) < 500) {
-            try {
-                await pool.query(
-                    `UPDATE users.users SET xp = $1
-                    WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + 500, key]);
-    
-                bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Mengaktifkan Cheat`, { parse_mode: 'html', disable_notification: true });
-                return true;
-            } catch (error) {
-                console.error(error.stack);
-                return false;
-            }
-        } else {
-            bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Cheat kadaluarsa`, { parse_mode: 'html', disable_notification: true });
-        }
-        
+        bot.sendMessageNoSpam2(chatId, `eh kamu ${withUser(msg.from)} Jangan Ngecheat 😡`, { parse_mode: 'html', disable_notification: true }, msg);
     }
     
 };
