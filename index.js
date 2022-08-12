@@ -118,6 +118,9 @@ async function incrementXP(msg, match) {
 
     const entities = msg.entities || [];
     const isLink = entities.find(e => e.type == 'url');
+    
+    const captionEntities = msg.caption_entities || [];
+    const captionIsLink = captionEntities.find(e => e.type == 'url');
 
     if (moderateMode) {
         if (isLink)
@@ -162,7 +165,11 @@ async function incrementXP(msg, match) {
                     WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + xp_rate, key]);
 
                 if (isLink) {
-                    infoChatLink(msg, match);
+                    infoChatLink(msg, match, 1);
+                }
+
+                if (captionIsLink) {
+                    infoChatLink(msg, match, 2);
                 }
 
                 getRandomXP(msg, match);
@@ -185,12 +192,18 @@ async function incrementXP(msg, match) {
     
 };
 
-async function infoChatLink(msg, match) {
+async function infoChatLink(msg, match, typeLink) {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
     const key = chatId + userId;
 
-    bot.sendMessageNoSpam2(chatId, `Pastikan Link yang baru aja kamu Share ${withUser(msg.from)} ada hubungannya dengan DREAMCATCHER dan sudah sesuai dengan aturan grup.`, { parse_mode: 'html', disable_notification: true });
+    if (typeLink === 1) {
+        bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Pastikan Link yang baru aja kamu Share ada hubungannya dengan <b>DREAMCATCHER</b> dan sudah sesuai dengan aturan grup.`, { parse_mode: 'html', disable_notification: true });
+    } else if (typeLink === 2) {
+        bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Pastikan Link dan Konten yang baru aja kamu Share ada hubungannya dengan <b>DREAMCATCHER</b> dan sudah sesuai dengan aturan grup.`, { parse_mode: 'html', disable_notification: true });
+    } else {
+        bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Pastikan Link yang baru aja kamu Share ada hubungannya dengan <b>DREAMCATCHER</b> dan sudah sesuai dengan aturan grup.`, { parse_mode: 'html', disable_notification: true });
+    }
 }
 
 async function getRandomXP(msg, match) {
@@ -478,11 +491,13 @@ async function displayRanks(msg, match) {
     let xp_score = [];
 
     if (!isNaN(parseInt(match[1]))) {
-        var nilai = 0;
+        var nilai = 1;
         if (parseInt(match[1]) > 40) {
-            nilai = 40
+            nilai = 40 + (skipRank-1)
+        } else if (parseInt(match[1]) <= 0) {
+            nilai = 5
         } else {
-            nilai = parseInt(match[1])
+            nilai = parseInt(match[1] + (skipRank-1))
         }
         xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT $2;', [chatId, nilai]);
     } else {
