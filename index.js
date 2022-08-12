@@ -30,7 +30,7 @@ const pool = new Pool({
     database: PG_DB,
     password: PG_PASSWORD,
     port: PG_PORT,
-    ssl: { rejectUnauthorized: false } // enable for deploy on heroku
+    //ssl: { rejectUnauthorized: false } // enable for deploy on heroku
 });
 
 var level = [
@@ -493,15 +493,15 @@ async function displayRanks(msg, match) {
     if (!isNaN(parseInt(match[1]))) {
         var nilai = 1;
         if (parseInt(match[1]) > 40) {
-            nilai = 40 + (skipRank-1)
+            nilai = 40
         } else if (parseInt(match[1]) <= 0) {
-            nilai = 5
+            nilai = 5 + skipRank-1
         } else {
-            nilai = parseInt(match[1] + (skipRank-1))
+            nilai = parseInt(match[1])
         }
-        xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT $2;', [chatId, nilai]);
+        xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT $2;', [chatId, nilai + skipRank-1]);
     } else {
-        xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT 5;', [chatId]);
+        xp_score = await pool.query('SELECT * FROM users.users WHERE gid = $1 ORDER BY xp DESC LIMIT $2;', [chatId, 5 + skipRank-1]);
     }
     
 
