@@ -279,11 +279,11 @@ async function displayXP(msg, match) {
         const user_info = await bot.getChatMember(chatId, msg.reply_to_message.from.id);
 
         if (!xp_score.rows.length) {
-            bot.sendMessage(chatId, `XP ${withUser(user_info.user)} masih 0 👶`, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
+            bot.sendMessage(chatId, `ˣᵖ ${withUser(user_info.user)} masih 0 👶`, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
             return;
         }
 
-        bot.sendMessage(chatId, `XP ${withUser(user_info.user)} saat ini ` + xp_score.rows[0].xp, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
+        bot.sendMessage(chatId, `ˣᵖ ${withUser(user_info.user)} saat ini ` + xp_score.rows[0].xp, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
         return;
     }
 
@@ -306,17 +306,17 @@ async function displayXP(msg, match) {
 
 
     if (!xp_score.length) {
-        bot.sendMessage(chatId, "XP kamu masih 0 👶", {reply_to_message_id: msg.message_id});
+        bot.sendMessage(chatId, "ˣᵖ kamu masih 0 👶", {reply_to_message_id: msg.message_id});
         return;
     }
 
     if (xp_score.length > 1) {
         const member = await bot.getChatMember(chatId, xp_score[1].uid);
 
-        bot.sendMessage(chatId, "XP kamu saat ini " + xp_score[0].xp + " dan berada di Rank #" + xp_score[0].rank + " / " + xp_score[0].count +
-        "\nButuh " + (xp_score[1].xp - xp_score[0].xp) + " XP lagi untuk menyusul " + member.user.first_name, {reply_to_message_id: msg.message_id});
+        bot.sendMessage(chatId, "ˣᵖ kamu saat ini " + xp_score[0].xp + " dan berada di Rank #" + xp_score[0].rank + " / " + xp_score[0].count +
+        "\nButuh " + (xp_score[1].xp - xp_score[0].xp) + " ˣᵖ lagi untuk menyusul " + member.user.first_name, {reply_to_message_id: msg.message_id});
     } else {
-        bot.sendMessage(chatId, "XP kamu saat ini " + xp_score[0].xp + " dan berada di Rank #" + xp_score[0].rank + " / " + xp_score[0].count, {reply_to_message_id: msg.message_id});
+        bot.sendMessage(chatId, "ˣᵖ kamu saat ini " + xp_score[0].xp + " dan berada di Rank #" + xp_score[0].rank + " / " + xp_score[0].count, {reply_to_message_id: msg.message_id});
     }
 }
 
@@ -351,9 +351,9 @@ async function displayTopRanks(msg, match) {
     }
 
     bot.sendMessage(chatId,
-        `🥇 ${withUser(users[0])} : ${xp_score.rows[0+(skipRank-1)].xp} XP \n` +
-        `🥈 ${withUser(users[1])} : ${xp_score.rows[1+(skipRank-1)].xp} XP \n` +
-        `🥉 ${withUser(users[2])} : ${xp_score.rows[2+(skipRank-1)].xp} XP`,
+        `🥇 ${withUser(users[0])} : ${xp_score.rows[0+(skipRank-1)].xp} ˣᵖ \n` +
+        `🥈 ${withUser(users[1])} : ${xp_score.rows[1+(skipRank-1)].xp} ˣᵖ \n` +
+        `🥉 ${withUser(users[2])} : ${xp_score.rows[2+(skipRank-1)].xp} ˣᵖ`,
         { parse_mode: 'html', disable_notification: true }, msg);
 }
 
@@ -380,8 +380,8 @@ async function displayHelp(msg, match) {
     // if (msg.chat.type != "private")
     //     return;
     bot.sendMessage(msg.chat.id, "Berikut adalah command yang bisa kamu gunakan.\n\n" +
-        " - /xp - Ini akan menampilkan jumlah XP kamu (Reply sebuah pesan untuk melihat xp orang lain).\n" +
-        " - /level - Akan menampilkan status level kamu.\n" +
+        " - /xp - Ini akan menampilkan jumlah ˣᵖ kamu (Reply sebuah pesan untuk melihat ˣᵖ orang lain).\n" +
+        " - /level - Akan menampilkan status level kamu (Reply sebuah pesan untuk melihat level orang lain).\n" +
         " - /topranks - Menampilkan 1-3 Rank.\n" +
         " - /help - Menampilkan bantuan ini.\n");
 }
@@ -421,8 +421,8 @@ async function displayLevel(msg, match) {
         const user_info = await bot.getChatMember(chatId, msg.reply_to_message.from.id);
         for (let i = 0; i < level.length; i++) {
             if (parseInt(xpData2.rows[0].xp) > level[i].level_xp) {
-                level_get = `${withUser(user_info.user)} lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData2.rows[0].xp} XP.\n` +
-                `butuh ${level[i+1].level_xp - parseInt(xpData2.rows[0].xp)} XP lagi untuk ke Level ${level[i+1].level}`;
+                level_get = `${withUser(user_info.user)} lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData2.rows[0].xp} ˣᵖ.\n` +
+                `butuh ${level[i+1].level_xp - parseInt(xpData2.rows[0].xp)} ˣᵖ lagi untuk ke Level ${level[i+1].level}`;
             }
         }
 
@@ -432,8 +432,8 @@ async function displayLevel(msg, match) {
 
     for (let i = 0; i < level.length; i++) {
         if (parseInt(xpData.rows[0].xp) > level[i].level_xp) {
-            level_get = `Kamu lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData.rows[0].xp} XP.\n` +
-            `butuh ${level[i+1].level_xp - parseInt(xpData.rows[0].xp)} XP lagi untuk ke Level ${level[i+1].level}`;
+            level_get = `Kamu lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData.rows[0].xp} ˣᵖ.\n` +
+            `butuh ${level[i+1].level_xp - parseInt(xpData.rows[0].xp)} ˣᵖ lagi untuk ke Level ${level[i+1].level}`;
         }
     }
     
@@ -471,9 +471,9 @@ async function infoRankJadwal(msg, match) {
     }
 
     bot.sendMessage(chatId, `<b>Top 3 Rank saat ini</b>\n\n` +
-        `🥇 ${withUser(users[0])} : ${xp_score.rows[0+(skipRank-1)].xp} XP \n` +
-        `🥈 ${withUser(users[1])} : ${xp_score.rows[1+(skipRank-1)].xp} XP \n` +
-        `🥉 ${withUser(users[2])} : ${xp_score.rows[2+(skipRank-1)].xp} XP\n\n` +
+        `🥇 ${withUser(users[0])} : ${xp_score.rows[0+(skipRank-1)].xp} ˣᵖ\n` +
+        `🥈 ${withUser(users[1])} : ${xp_score.rows[1+(skipRank-1)].xp} ˣᵖ\n` +
+        `🥉 ${withUser(users[2])} : ${xp_score.rows[2+(skipRank-1)].xp} ˣᵖ\n\n` +
         `Teruslah berinterakasi untuk meningkatkan XP dan menaikan Level, dengan tetap mematuhi Aturan tentunya.`,
         { parse_mode: 'html', disable_notification: true }, msg);
 }
@@ -509,7 +509,7 @@ async function displayRanks(msg, match) {
     for (let i = skipRank-1; i < xp_score.rows.length; i++) {
         const member = await bot.getChatMember(chatId, xp_score.rows[i].uid);
         if (member && member.user) {
-            users.push(`${i}. ${withUser(member.user)} : ${xp_score.rows[i].xp} XP`);
+            users.push(`${i}. ${withUser(member.user)} : ${xp_score.rows[i].xp} ˣᵖ`);
         } else {
             users[i] = {id: 0, first_name: 'Anonymous'};
         }
@@ -560,7 +560,7 @@ async function moderateContent(msg, match) {
     if (score < minXP) {
         bot.deleteMessage(chatId, msg.message_id);
 
-        bot.sendMessageNoSpam(chatId, `Maaf YGY, tapi kamu ${withUser(msg.from)} tidak bisa mengirimkan itu, karena XP atau Level kamu masih kurang. Banyak banyakin Interaksi di grup YGY 😚...`, { parse_mode: 'html', disable_notification: true });
+        bot.sendMessageNoSpam(chatId, `Maaf YGY, tapi kamu ${withUser(msg.from)} tidak bisa mengirimkan itu, karena ˣᵖ atau Level kamu masih kurang. Banyak banyakin Interaksi di grup YGY 😚...`, { parse_mode: 'html', disable_notification: true });
         return false;
     }
 
