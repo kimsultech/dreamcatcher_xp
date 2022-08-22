@@ -2,13 +2,26 @@
 
 // fix node-telegram-bot-api deprecated message
 process.env.NTBA_FIX_319 = 1
+process.env.NTBA_FIX_350 = 1 // fix telegram bot fileoptions warning
 
 require('dotenv').config();
 
 const TelegramBot = require('node-telegram-bot-api');
 const escapeMD = require('markdown-escape');
 
-const {Pool} = require('pg')
+const {Pool} = require('pg');
+
+const sharp = require('sharp');
+
+// create image for info rank/xp
+const fs = require('fs');
+const { loadImage, createCanvas } = require('canvas');
+
+const width = 900;
+const height = 280;
+const canvas = createCanvas(width, height);
+const context = canvas.getContext('2d');
+// end create image for info rank/xp
 
 //const connectionString = process.env.POSTGRES_URL;
 const telegramToken = process.env.TELEGRAM_TOKEN;
@@ -74,6 +87,11 @@ bot.onText(/\/ranks(@\w+)?/, displayRankHelp);
 bot.onText(/\/level(@\w+)?/, displayLevel);
 
 bot.onText(/\/cheat_xp/, cheatXP);
+
+bot.onText(/\/rank (.+)/, showRankCanvas);
+bot.onText(/\/rank(@\w+)?/, showRankCanvas);
+
+
 
 async function incrementXP(msg, match) {
     const chatId = msg.chat.id;
@@ -376,6 +394,25 @@ function withUser(user) {
     return `<a href='tg://user?id=${user.id}'>${fn + ln}</a>`;
 }
 
+function withFullname(user) {
+    var fn = '';
+    var ln = '';
+    if (user.first_name != undefined) {
+        fn = user.first_name + ' '
+    } else {
+        fn = ''
+    }
+        
+    if (user.last_name != undefined) {
+        ln = user.last_name
+    } else {
+        ln = ''
+    }
+
+    //return fn + ln;
+    return fn + ln;
+}
+
 async function displayHelp(msg, match) {
     // if (msg.chat.type != "private")
     //     return;
@@ -646,4 +683,166 @@ bot.sendMessageNoSpam2 = async (gid, text, options, queryMsg) => {
                 bot.deleteMessage(gid, queryMsg.message_id);
             bot.deleteMessage(gid, msg.message_id);
         }, 10 * 1000);
+}
+
+async function showRankCanvas(msg, match) {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const key = chatId + userId;
+
+    const memberPhotos = await bot.getUserProfilePhotos(userId, {limit:1});
+    const getMemberPhotos = await bot.getFile(memberPhotos.photos[0][2].file_id);
+    const memberPhotosToLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${getMemberPhotos.file_path}`;
+    
+    
+    const xp_score = [];
+    const xp_score_list = await pool.query(`SELECT *, COUNT(*) OVER() AS count, RANK() OVER(ORDER BY xp DESC) AS rank
+                                            FROM (SELECT DISTINCT ON (xp) *
+                                                FROM users.users
+                                                WHERE gid = $1
+                                                ORDER BY xp DESC) s`, [chatId]
+    );
+
+    for (let i = 0; i < xp_score_list.rows.length; i++) {
+        if (xp_score_list.rows[i].guid == key) {
+            xp_score.push(xp_score_list.rows[i]);
+            if (xp_score_list.rows[i-1] != undefined) {
+                xp_score.push(xp_score_list.rows[i-1]);
+            }
+        }
+    }
+
+    // get level
+    var getLevel = 0;
+    for (let i = 0; i < level.length; i++) {
+        if (parseInt(xp_score[0].xp) > level[i].level_xp) {
+            getLevel = level[i].level;
+        }
+    }
+
+
+    // Background color
+    context.fillStyle = "#212121";
+    context.rect()
+    roundedImage(0, 0, width, height, 20);
+    context.clip();
+    context.fillRect(0, 0, width, height);
+
+    // set image profile
+    const x_ip = 45;
+    const y_ip = 60;
+    const img_profile = await loadImage(memberPhotosToLink);
+    img_profile.src = memberPhotosToLink;
+    context.drawImage(img_profile, x_ip, y_ip, 160, 160);
+
+    // Set text 1.1 level
+    context.font = "normal 40px Arial";
+    context.textAlign = "left";
+    context.fillStyle = "#ab003c";
+    context.fillText("LEVEL", width / 2+200, height / 2-50);
+
+    // Set text 1.2 level
+    context.font = "bold 80px Arial";
+    context.textAlign = "left";
+    context.fillStyle = "#ab003c";
+    context.fillText(getLevel.toString().slice(0, 2), width / 2+335, height / 2-50);
+
+    // Set text 1.1 rank
+    context.font = "normal 40px Arial";
+    context.textAlign = "left";
+    context.fillStyle = "#83f03c";
+    context.fillText("RANK", width / 2-140, height / 2-50);
+
+    // Set text 1.2 rank
+    context.font = "bold 80px Arial";
+    context.textAlign = "left";
+    context.fillStyle = "#83f03c";
+    context.fillText('#' + xp_score[0].rank.slice(0, 3), width / 2-20, height / 2-50);
+
+    // Set text 1 username
+    context.font = "bold 35px Arial";
+    context.textAlign = "left";
+    context.fillStyle = "#f2f2f2";
+    context.fillText(withFullname(msg.from).slice(0, 24), width / 2-180, height / 2+20);
+
+    // linebar 1
+    context.beginPath();
+    context.lineCap = "round";
+    context.lineWidth = 50;
+    context.strokeStyle = "#313131";
+    context.moveTo(280, 200);
+    context.lineTo(850, 200);
+    context.stroke();
+    context.closePath();
+
+    // linebar 1
+    var progress = parseInt(parseInt(xp_score[0].xp) / parseInt(xp_score[0].next_xp) * (850-280)); // add -280 for start 0
+    console.log(progress);
+    context.beginPath();
+    context.lineCap = "round";
+    context.lineWidth = 50;
+    context.strokeStyle = "#83f03c";
+    context.moveTo(280, 200);
+    context.lineTo(progress + 280, 200); // this, add 280 for start 0
+    context.stroke();
+    context.closePath();
+
+    // Set text 1 xp and next xp
+    context.font = "bold 35px Arial";
+    context.textAlign = "left";
+    context.fillStyle = "#ab003c";
+    context.fillText(`${xp_score[0].xp.slice(0, 6)} / ${xp_score[0].next_xp.slice(0, 6)}`, width / 2+20, height / 2+70);
+
+    // Set text 1 group id/username
+    context.font = "bold 30px Arial";
+    context.textAlign = "left";
+    context.fillStyle = "#f2f2f2";
+    context.fillText('@dreamcatcher_id', width / 2+160, height / 2+125);
+
+
+    const buffer = canvas.toBuffer("image/png");
+    
+    var outputWebp = `tmp_image/dcxp_${Date.now()}.webp`;
+    var outputPng = `tmp_image/dcxp_${Date.now()}.png`;
+
+    fs.writeFileSync(outputPng, buffer);
+
+    sharp(buffer)
+    .resize(512, 159)
+    .toFile(outputWebp, (err, info) => {
+        if (!err) {
+            sendInfoSticker(msg, match, chatId, outputWebp, outputPng);
+        }
+    });
+
+    
+}
+
+async function sendInfoSticker(msg, match, chatId, outputWebp, outputPng) {
+    
+    if (match[1] === 'png' || match[1] === 'PNG') {
+        await bot.sendDocument(chatId, outputPng, {});
+    } else {
+        if (match.input === '/rank') {
+            await bot.sendSticker(chatId, outputWebp, {});
+        }
+        
+    }
+    
+    fs.unlinkSync(outputWebp);
+    fs.unlinkSync(outputPng);
+}
+
+function roundedImage(x,y,width,height,radius){
+    context.beginPath();
+    context.moveTo(x + radius, y);
+    context.lineTo(x + width - radius, y);
+    context.quadraticCurveTo(x + width, y, x + width, y + radius);
+    context.lineTo(x + width, y + height - radius);
+    context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    context.lineTo(x + radius, y + height);
+    context.quadraticCurveTo(x, y + height, x, y + height - radius);
+    context.lineTo(x, y + radius);
+    context.quadraticCurveTo(x, y, x + radius, y);
+    context.closePath();
 }
