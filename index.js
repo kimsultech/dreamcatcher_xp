@@ -62,7 +62,8 @@ var level = [
     {"level_name": "BEcause", "level_xp": 6500, "level": 13},
     {"level_name": "Maison", "level_xp": 7000, "level": 14},
     {"level_name": "DREAMCATCHER", "level_xp": 10000, "level": 15},
-    {"level_name": "Onwer", "level_xp": 999999999999999999, "level": 9999999} // change type column xp and next_xp on database from integer to bigint
+    {"level_name": "GM", "level_xp": 9999999, "level": 99999},
+    {"level_name": "Aktif Parah", "level_xp": 999999999999999999, "level": 9999999} // change type column xp and next_xp on database from integer to bigint
 ]
 
 // Create a bot that uses 'polling' to fetch new updates
