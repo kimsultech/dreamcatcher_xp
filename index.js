@@ -791,7 +791,7 @@ async function showRankCanvas(msg, match) {
     context.font = "bold 35px Arial";
     context.textAlign = "left";
     context.fillStyle = "#ab003c";
-    context.fillText(`${xp_score[0].xp.slice(0, 6)} / ${xp_score[0].next_xp.slice(0, 6)}`, width / 2+20, height / 2+70);
+    context.fillText(`${xp_score[0].xp} / ${xp_score[0].next_xp}`, width / 2+20, height / 2+70);
 
     // Set text 1 group id/username
     context.font = "bold 30px Arial";
