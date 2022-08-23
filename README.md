@@ -26,6 +26,7 @@ See .env_example change to .env and change the contents , or set Config Vars on 
 - `/level` Get current level (or reply user to get current level that user)
 - `/topranks` Get top rank from 1-3
 - `/ranks 10` Get list rank from 1-10 (change 10 to what you want)
+- `/rank` Get info rank, /rank png (to export to image)
 
 ## Built With
 
