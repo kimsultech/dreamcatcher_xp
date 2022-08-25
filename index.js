@@ -556,11 +556,14 @@ async function displayRanks(msg, match) {
 
     let users = [];
     for (let i = skipRank-1; i < xp_score.rows.length; i++) {
-        const member = await bot.getChatMember(chatId, xp_score.rows[i].uid);
-        if (member && member.user) {
+        const member = await bot.getChatMember(chatId, xp_score.rows[i].uid).catch((error) => {
+            console.log(error.code);
+        });
+        console.log(member);
+        if (member && member.user && member !== undefined) {
             users.push(`${i}. ${withUser(member.user)} : ${xp_score.rows[i].xp} ˣᵖ`);
         } else {
-            users[i] = {id: 0, first_name: 'Anonymous'};
+            users.push(`${i}. (<code>${xp_score.rows[i].uid}</code>) User 404 ❌ : ${xp_score.rows[i].xp} ˣᵖ`);
         }
     }
 
