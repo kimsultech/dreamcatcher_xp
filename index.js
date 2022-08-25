@@ -559,7 +559,6 @@ async function displayRanks(msg, match) {
         const member = await bot.getChatMember(chatId, xp_score.rows[i].uid).catch((error) => {
             console.log(error.code);
         });
-        console.log(member);
         if (member && member.user && member !== undefined) {
             users.push(`${i}. ${withUser(member.user)} : ${xp_score.rows[i].xp} ˣᵖ`);
         } else {
