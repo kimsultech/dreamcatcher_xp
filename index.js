@@ -92,7 +92,9 @@ bot.onText(/\/cheat_xp/, cheatXP);
 bot.onText(/\/rank (.+)/, showRankCanvas);
 bot.onText(/\/rank(@\w+)?/, showRankCanvas);
 
+const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
+var notSleep = true;
 
 async function incrementXP(msg, match) {
     const chatId = msg.chat.id;
@@ -111,102 +113,111 @@ async function incrementXP(msg, match) {
         xp_rate = 1
     }
 
+    console.log('masih delay');
 
-    if (!GrupWhiteListArray.includes(String(chatId)) && msg.chat.type != "private") {
-        await pool.query(
-            `INSERT INTO users.users (guid, gid, uid, xp, next_xp)  
-             VALUES ($1, $2, $3, $4, $5)`, [key, chatId, userId, -1, -1]);
-        bot.sendMessage(chatId, "Maaf botnya bukan untuk grup ini, hanya grup yang masuk whitelist. tolong keluarkan botnya!");
-        return;
-    }
+    if (notSleep) {
+        sleep(8000).then(() => { // 8 second
+            notSleep = true;
+        });
 
+        notSleep = false;
 
-    if (msg.chat.type == "private")
-        return;
-
-    if (msg.text && msg.text.match(/\/xp/))
-        return;
-    if (msg.text && msg.text.match(/\/ranks/))
-        return;
-    if (msg.text && msg.text.match(/\/level/))
-        return;
-    if (msg.text && msg.text.match(/\/help/))
-        return;
-    if (msg.text && msg.text.match(/\/start/))
-        return;
-
-    const entities = msg.entities || [];
-    const isLink = entities.find(e => e.type == 'url');
-    
-    const captionEntities = msg.caption_entities || [];
-    const captionIsLink = captionEntities.find(e => e.type == 'url');
-
-    if (moderateMode) {
-        if (isLink)
-            if (!(await moderateContent(msg, match)))
-                return;
-    
-        if (msg.photo)
-            if (!(await moderateContent(msg, match)))
-                return;
-
-        if (msg.document)
-            if (!(await moderateContent(msg, match)))
-                return;
-
-        if (msg.video)
-            if (!(await moderateContent(msg, match)))
-                return;
-
-        if (msg.voice)
-            if (!(await moderateContent(msg, match)))
-                return;
-    }
-
-    
-    try {
-        const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
-
-        if (!xpData.rows.length) {
-            try {
-                await pool.query(
-                    `INSERT INTO users.users (guid, gid, uid, xp, next_xp)  
-                     VALUES ($1, $2, $3, $4, $5)`, [key, chatId, userId, 1, level[1].level_xp]);
-                return true;
-            } catch (error) {
-                console.error(error.stack);
-                return false;
-            }
-        } else {
-            try {
-                await pool.query(
-                    `UPDATE users.users SET xp = $1
-                    WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + xp_rate, key]);
-
-                if (isLink) {
-                    infoChatLink(msg, match, 1);
-                }
-
-                if (captionIsLink) {
-                    infoChatLink(msg, match, 2);
-                }
-
-                getRandomXP(msg, match);
-
-                if (parseInt(xpData.rows[0].xp) >= parseInt(xpData.rows[0].next_xp)) {
-                    nextLevel(msg, match);
-                }
-
-                return true;
-            } catch (error) {
-                console.error(error.stack);
-                return false;
-            }
+        if (!GrupWhiteListArray.includes(String(chatId)) && msg.chat.type != "private") {
+            await pool.query(
+                `INSERT INTO users.users (guid, gid, uid, xp, next_xp)  
+                 VALUES ($1, $2, $3, $4, $5)`, [key, chatId, userId, -1, -1]);
+            bot.sendMessage(chatId, "Maaf botnya bukan untuk grup ini, hanya grup yang masuk whitelist. tolong keluarkan botnya!");
+            return;
         }
-
-    } catch (error) {
-        console.error(error.stack);
-        return false;
+    
+    
+        if (msg.chat.type == "private")
+            return;
+    
+        if (msg.text && msg.text.match(/\/xp/))
+            return;
+        if (msg.text && msg.text.match(/\/ranks/))
+            return;
+        if (msg.text && msg.text.match(/\/level/))
+            return;
+        if (msg.text && msg.text.match(/\/help/))
+            return;
+        if (msg.text && msg.text.match(/\/start/))
+            return;
+    
+        const entities = msg.entities || [];
+        const isLink = entities.find(e => e.type == 'url');
+        
+        const captionEntities = msg.caption_entities || [];
+        const captionIsLink = captionEntities.find(e => e.type == 'url');
+    
+        if (moderateMode) {
+            if (isLink)
+                if (!(await moderateContent(msg, match)))
+                    return;
+        
+            if (msg.photo)
+                if (!(await moderateContent(msg, match)))
+                    return;
+    
+            if (msg.document)
+                if (!(await moderateContent(msg, match)))
+                    return;
+    
+            if (msg.video)
+                if (!(await moderateContent(msg, match)))
+                    return;
+    
+            if (msg.voice)
+                if (!(await moderateContent(msg, match)))
+                    return;
+        }
+    
+        
+        try {
+            const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
+    
+            if (!xpData.rows.length) {
+                try {
+                    await pool.query(
+                        `INSERT INTO users.users (guid, gid, uid, xp, next_xp)  
+                         VALUES ($1, $2, $3, $4, $5)`, [key, chatId, userId, 1, level[1].level_xp]);
+                    return true;
+                } catch (error) {
+                    console.error(error.stack);
+                    return false;
+                }
+            } else {
+                try {
+                    await pool.query(
+                        `UPDATE users.users SET xp = $1
+                        WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + xp_rate, key]);
+    
+                    if (isLink) {
+                        infoChatLink(msg, match, 1);
+                    }
+    
+                    if (captionIsLink) {
+                        infoChatLink(msg, match, 2);
+                    }
+    
+                    getRandomXP(msg, match);
+    
+                    if (parseInt(xpData.rows[0].xp) >= parseInt(xpData.rows[0].next_xp)) {
+                        nextLevel(msg, match);
+                    }
+    
+                    return true;
+                } catch (error) {
+                    console.error(error.stack);
+                    return false;
+                }
+            }
+    
+        } catch (error) {
+            console.error(error.stack);
+            return false;
+        }
     }
     
 };
@@ -758,7 +769,7 @@ async function showRankCanvas(msg, match) {
     context.font = "bold 80px Arial";
     context.textAlign = "left";
     context.fillStyle = "#83f03c";
-    context.fillText('#' + xp_score[0].rank.slice(0, 3), width / 2-20, height / 2-50);
+    context.fillText('#' + parseInt(parseInt(xp_score[0].rank.slice(0, 3)) - 1), width / 2-20, height / 2-50);
 
     // Set text 1 username
     context.font = "bold 35px Arial";
