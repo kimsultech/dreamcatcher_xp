@@ -707,14 +707,17 @@ async function showRankCanvas(msg, match) {
     var noPP = false;
     var memberPhotosToLink = '';
 
-    const memberPhotos = await bot.getUserProfilePhotos(userId, {limit:1});
-    const getMemberPhotos = await bot.getFile(memberPhotos.photos[0][2].file_id).catch((error) => {
+    const memberPhotos = await bot.getUserProfilePhotos(userId, {limit:1}).catch((error) => {
         noPP = true
+        console.log(error);
     });
-    
+
+    console.log(memberPhotos);
+
     if(noPP) {
         memberPhotosToLink = 'https://dummyimage.com/250x250/000000/f51616.png&text=ERROR'
     } else {
+        const getMemberPhotos = await bot.getFile(memberPhotos.photos[0][2].file_id);
         memberPhotosToLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${getMemberPhotos.file_path}`;
     }
     
