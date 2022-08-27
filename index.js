@@ -704,9 +704,20 @@ async function showRankCanvas(msg, match) {
     const userId = msg.from.id;
     const key = chatId + userId;
 
+    var noPP = false;
+    var memberPhotosToLink = '';
+
     const memberPhotos = await bot.getUserProfilePhotos(userId, {limit:1});
-    const getMemberPhotos = await bot.getFile(memberPhotos.photos[0][2].file_id);
-    const memberPhotosToLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${getMemberPhotos.file_path}`;
+    const getMemberPhotos = await bot.getFile(memberPhotos.photos[0][2].file_id).catch((error) => {
+        noPP = true
+    });
+    
+    if(noPP) {
+        memberPhotosToLink = 'https://dummyimage.com/250x250/000000/f51616.png&text=ERROR'
+    } else {
+        memberPhotosToLink = `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${getMemberPhotos.file_path}`;
+    }
+    
     
     
     const xp_score = [];
