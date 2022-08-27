@@ -707,14 +707,11 @@ async function showRankCanvas(msg, match) {
     var noPP = false;
     var memberPhotosToLink = '';
 
-    const memberPhotos = await bot.getUserProfilePhotos(userId, {limit:1}).catch((error) => {
-        noPP = true
-        console.log(error);
-    });
+    const memberPhotos = await bot.getUserProfilePhotos(userId, {limit:1});
 
     console.log(memberPhotos);
 
-    if(noPP) {
+    if(memberPhotos.total_count == 0) {
         memberPhotosToLink = 'https://dummyimage.com/250x250/000000/f51616.png&text=ERROR'
     } else {
         const getMemberPhotos = await bot.getFile(memberPhotos.photos[0][2].file_id);
