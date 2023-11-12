@@ -17,6 +17,8 @@ const sharp = require('sharp');
 const fs = require('fs');
 const { loadImage, createCanvas } = require('canvas');
 
+const tgresolve = require("tg-resolve");
+
 const width = 900;
 const height = 280;
 const canvas = createCanvas(width, height);
@@ -36,6 +38,7 @@ const moderateMode = process.env.MODERATE_ON == "true";
 const lessBotSpam = process.env.LESS_BOT_SPAM == "true";
 const botExpiration = (process.env.BOT_EXPIRATION || 3) * 1000;
 const skipRank = (parseInt(process.env.SKIP_RANK) || 1) + 1;
+const threadID = process.env.THREAD_ID;
 
 const pool = new Pool({
     host: PG_HOST,
@@ -45,6 +48,8 @@ const pool = new Pool({
     port: PG_PORT,
     ssl: { rejectUnauthorized: false } // enable for deploy on heroku
 });
+
+const resolver = new tgresolve.Tgresolve(telegramToken);
 
 var level = [
     {"level_name": "Kang Nyimak", "level_xp": 0, "level": 1},
@@ -96,6 +101,22 @@ const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitT
 
 var notSleep = true;
 
+
+function threadCheck(msg) {
+    const chatId = msg.chat.id;
+    const threadCheckId = msg.message_thread_id;
+
+    //console.log(msg)
+
+    if (threadCheckId != threadID) {
+        bot.sendMessageNoSpam2(chatId, `Gunakan Bot XP di Room Khusus XP`, { message_thread_id: msg.message_thread_id, parse_mode: 'html', disable_notification: true });
+        return false;
+    } else {
+        return true;
+    }
+}
+
+
 async function incrementXP(msg, match) {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
@@ -113,14 +134,14 @@ async function incrementXP(msg, match) {
         xp_rate = 1
     }
 
-    console.log('masih delay');
+    // console.log('masih delay');
 
     if (notSleep) {
-        sleep(8000).then(() => { // 8 second
+        sleep(3000).then(() => { // 3 second
             notSleep = true;
         });
 
-        notSleep = false;
+        // notSleep = false;
 
         if (!GrupWhiteListArray.includes(String(chatId)) && msg.chat.type != "private") {
             await pool.query(
@@ -194,11 +215,11 @@ async function incrementXP(msg, match) {
                         WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + xp_rate, key]);
     
                     if (isLink) {
-                        infoChatLink(msg, match, 1);
+                        //infoChatLink(msg, match, 1);
                     }
     
                     if (captionIsLink) {
-                        infoChatLink(msg, match, 2);
+                        //infoChatLink(msg, match, 2);
                     }
     
                     getRandomXP(msg, match);
@@ -218,6 +239,8 @@ async function incrementXP(msg, match) {
             console.error(error.stack);
             return false;
         }
+    } else {
+	console.log('nothing bos');
     }
     
 };
@@ -228,11 +251,11 @@ async function infoChatLink(msg, match, typeLink) {
     const key = chatId + userId;
 
     if (typeLink === 1) {
-        bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Pastikan Link yang baru aja kamu Share ada hubungannya dengan <b>DREAMCATCHER</b> dan sudah sesuai dengan aturan grup.`, { parse_mode: 'html', disable_notification: true });
+        bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Pastikan Link yang baru aja kamu Share ada hubungannya dengan <b>DREAMCATCHER</b> dan pinjam dulu seratus.`, { message_thread_id: msg.message_thread_id, parse_mode: 'html', disable_notification: true });
     } else if (typeLink === 2) {
-        bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Pastikan Link dan Konten yang baru aja kamu Share ada hubungannya dengan <b>DREAMCATCHER</b> dan sudah sesuai dengan aturan grup.`, { parse_mode: 'html', disable_notification: true });
+        bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Pastikan Link dan Konten yang baru aja kamu Share ada hubungannya dengan <b>DREAMCATCHER</b> dan pinjam dulu seratus.`, { message_thread_id: msg.message_thread_id, parse_mode: 'html', disable_notification: true });
     } else {
-        bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Pastikan Link yang baru aja kamu Share ada hubungannya dengan <b>DREAMCATCHER</b> dan sudah sesuai dengan aturan grup.`, { parse_mode: 'html', disable_notification: true });
+        bot.sendMessageNoSpam2(chatId, `${withUser(msg.from)} Pastikan Link yang baru aja kamu Share ada hubungannya dengan <b>DREAMCATCHER</b> dan pinjam dulu seratus.`, { message_thread_id: msg.message_thread_id, parse_mode: 'html', disable_notification: true });
     }
 }
 
@@ -255,7 +278,7 @@ async function getRandomXP(msg, match) {
                 WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + XP_free, key]);
 
             const url = 'AgACAgUAAx0CV2IEYgACA7FiwNHuzE-FGZrppTwqNvhPSXFTHgACuKkxG2XBGVRMda0e8G8TvQEAAwIAA3gAAykE';
-            bot.sendPhoto(chatId, url, {reply_to_message_id: msg.message_id, caption: 'Anjay Kamu dapat XP tambahan\n' + XP_free + ' XP 🎉'});
+            bot.sendPhoto(chatId, url, {message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, caption: 'Anjay Kamu dapat XP tambahan\n' + XP_free + ' XP 🎉'});
 
             return true;
         } catch (error) {
@@ -290,7 +313,7 @@ async function nextLevel(msg, match) {
 
     let levelUp = `🌟 ${withUser(member.user)} telah mencapai level ${level_now[level_now.length-2].level} dan sekarang menjadi <b>${level_now[level_now.length-2].level_name}</b>!`;
     
-    bot.sendMessage(chatId, levelUp, {parse_mode: "html"});
+    bot.sendMessage(chatId, levelUp, {message_thread_id: threadID, parse_mode: "html"});
 }
 
 async function displayXP(msg, match) {
@@ -304,16 +327,22 @@ async function displayXP(msg, match) {
         return;
     }
 
-    if (msg.reply_to_message) {
+    if (!threadCheck(msg)) {
+        return;
+    }
+
+    console.log(match[1]);
+
+    if (msg.entities.some(entitie => entitie.type === 'mention')) {
         const xp_score = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [chatId + msg.reply_to_message.from.id]);
         const user_info = await bot.getChatMember(chatId, msg.reply_to_message.from.id);
 
         if (!xp_score.rows.length) {
-            bot.sendMessage(chatId, `ˣᵖ ${withUser(user_info.user)} masih 0 👶`, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
+            bot.sendMessage(chatId, `ˣᵖ ${withUser(user_info.user)} masih 0 👶`, {message_thread_id: threadID, parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
             return;
         }
 
-        bot.sendMessage(chatId, `ˣᵖ ${withUser(user_info.user)} saat ini ` + xp_score.rows[0].xp, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
+        bot.sendMessage(chatId, `ˣᵖ ${withUser(user_info.user)} saat ini ` + xp_score.rows[0].xp, {message_thread_id: threadID, parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
         return;
     }
 
@@ -336,7 +365,7 @@ async function displayXP(msg, match) {
 
 
     if (!xp_score.length) {
-        bot.sendMessage(chatId, "ˣᵖ kamu masih 0 👶", {reply_to_message_id: msg.message_id});
+        bot.sendMessage(chatId, "ˣᵖ kamu masih 0 👶", {message_thread_id: threadID, reply_to_message_id: msg.message_id});
         return;
     }
 
@@ -344,9 +373,9 @@ async function displayXP(msg, match) {
         const member = await bot.getChatMember(chatId, xp_score[1].uid);
 
         bot.sendMessage(chatId, "ˣᵖ kamu saat ini " + xp_score[0].xp + " dan berada di Rank #" + xp_score[0].rank + " / " + xp_score[0].count +
-        "\nButuh " + (xp_score[1].xp - xp_score[0].xp) + " ˣᵖ lagi untuk menyusul " + member.user.first_name, {reply_to_message_id: msg.message_id});
+        "\nButuh " + (xp_score[1].xp - xp_score[0].xp) + " ˣᵖ lagi untuk menyusul " + member.user.first_name, {message_thread_id: threadID, reply_to_message_id: msg.message_id});
     } else {
-        bot.sendMessage(chatId, "ˣᵖ kamu saat ini " + xp_score[0].xp + " dan berada di Rank #" + xp_score[0].rank + " / " + xp_score[0].count, {reply_to_message_id: msg.message_id});
+        bot.sendMessage(chatId, "ˣᵖ kamu saat ini " + xp_score[0].xp + " dan berada di Rank #" + xp_score[0].rank + " / " + xp_score[0].count, {message_thread_id: threadID, reply_to_message_id: msg.message_id});
     }
 }
 
@@ -357,6 +386,10 @@ async function displayTopRanks(msg, match) {
 
     if (msg.chat.type == "private") {
         bot.sendMessage(chatId, "Hanya kamu Nomor Satu disini, cek di Grup dong!...", {reply_to_message_id: msg.message_id});
+        return;
+    }
+
+    if (!threadCheck(msg)) {
         return;
     }
 
@@ -384,7 +417,7 @@ async function displayTopRanks(msg, match) {
         `🥇 ${withUser(users[0])} : ${xp_score.rows[0+(skipRank-1)].xp} ˣᵖ \n` +
         `🥈 ${withUser(users[1])} : ${xp_score.rows[1+(skipRank-1)].xp} ˣᵖ \n` +
         `🥉 ${withUser(users[2])} : ${xp_score.rows[2+(skipRank-1)].xp} ˣᵖ`,
-        { parse_mode: 'html', disable_notification: true }, msg);
+        { message_thread_id: threadID, parse_mode: 'html', disable_notification: true }, msg);
 }
 
 function withUser(user) {
@@ -426,24 +459,43 @@ function withFullname(user) {
 }
 
 async function displayHelp(msg, match) {
-    // if (msg.chat.type != "private")
-    //     return;
+    if (msg.chat.type == "private") {
+        bot.sendMessage(msg.chat.id, "Tulung...", { });
+        return;
+    }
+
+    if (!threadCheck(msg)) {
+        return;
+    }
+
     bot.sendMessage(msg.chat.id, "Berikut adalah command yang bisa kamu gunakan.\n\n" +
         " - /xp - Ini akan menampilkan jumlah ˣᵖ kamu (Reply sebuah pesan untuk melihat ˣᵖ orang lain).\n" +
         " - /level - Akan menampilkan status level kamu (Reply sebuah pesan untuk melihat level orang lain).\n" +
         " - /topranks - Menampilkan 1-3 Rank.\n" +
-        " - /help - Menampilkan bantuan ini.\n");
+        " - /help - Menampilkan bantuan ini.\n", { message_thread_id: threadID });
 }
 
 async function displayStart(msg, match) {
-    // if (msg.chat.type != "private")
-    //     return;
+    if (msg.chat.type == "private") {
+        bot.sendMessage(msg.chat.id, "Sampurasun, ini adalah bot XP/Leaderboard dengan Level dan lainnya.\n\n" +
+        "Saat ini bot hanya untuk Grup @dreamcatcher_id dan bukan untuk umum.\n\n" +
+        "Dan bot ini masih dalam tahap pengembangan, jika kamu ingin menginstall bot ini, " +
+        "kamu bisa cek Source Code nya di http://github.com/kimsultech/dreamcatcher_xp/\n" +
+        "bisa menggunakan Local Server atau Deploy ke heroku.\n\n" +
+        "/help untuk melihat bantuan dan list command.", { });
+        return;
+    }
+
+    if (!threadCheck(msg)) {
+        return;
+    }
+
     bot.sendMessage(msg.chat.id, "Sampurasun, ini adalah bot XP/Leaderboard dengan Level dan lainnya.\n\n" +
         "Saat ini bot hanya untuk Grup @dreamcatcher_id dan bukan untuk umum.\n\n" +
         "Dan bot ini masih dalam tahap pengembangan, jika kamu ingin menginstall bot ini, " +
-        "kamu bisa cek Source Code nya di http://github.com/sultannamja/dreamcatcher_xp/\n" +
+        "kamu bisa cek Source Code nya di http://github.com/kimsultech/dreamcatcher_xp/\n" +
         "bisa menggunakan Local Server atau Deploy ke heroku.\n\n" +
-        "/help untuk melihat bantuan dan list command.");
+        "/help untuk melihat bantuan dan list command.", { message_thread_id: threadID });
 }
 
 async function displayLevel(msg, match) {
@@ -452,32 +504,36 @@ async function displayLevel(msg, match) {
     const key = chatId + userId;
 
     if (msg.chat.type == "private") {
-        bot.sendMessage(chatId, "Ceknya di grup, Private Chat ngak nampilin level...", {reply_to_message_id: msg.message_id});
+        bot.sendMessage(chatId, "Ceknya di grup, Private Chat ngak nampilin level...", {message_thread_id: threadID, reply_to_message_id: msg.message_id});
+        return;
+    }
+
+    if (!threadCheck(msg)) {
         return;
     }
 
     const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
 
     if (!xpData.rows.length) {
-        bot.sendMessage(chatId, "Level kamu masih 0 👶", {reply_to_message_id: msg.message_id});
+        bot.sendMessage(chatId, "Level kamu masih 0 👶", {message_thread_id: threadID, reply_to_message_id: msg.message_id});
         return;
     }
 
     let level_get = ``;
 
-    if (msg.reply_to_message) {
-        const xpData2 = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [chatId + msg.reply_to_message.from.id]);
-        const user_info = await bot.getChatMember(chatId, msg.reply_to_message.from.id);
-        for (let i = 0; i < level.length; i++) {
-            if (parseInt(xpData2.rows[0].xp) > level[i].level_xp) {
-                level_get = `${withUser(user_info.user)} lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData2.rows[0].xp} ˣᵖ.\n` +
-                `butuh ${level[i+1].level_xp - parseInt(xpData2.rows[0].xp)} ˣᵖ lagi untuk ke Level ${level[i+1].level}`;
-            }
-        }
+    // if (msg.reply_to_message.from.id != userId && msg.reply_to_message.from.id != 682686585) {
+    //     const xpData2 = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [chatId + msg.reply_to_message.from.id]);
+    //     const user_info = await bot.getChatMember(chatId, msg.reply_to_message.from.id);
+    //     for (let i = 0; i < level.length; i++) {
+    //         if (parseInt(xpData2.rows[0].xp) > level[i].level_xp) {
+    //             level_get = `${withUser(user_info.user)} lagi di Level ${level[i].level} (${level[i].level_name}) dengan ${xpData2.rows[0].xp} ˣᵖ.\n` +
+    //             `butuh ${level[i+1].level_xp - parseInt(xpData2.rows[0].xp)} ˣᵖ lagi untuk ke Level ${level[i+1].level}`;
+    //         }
+    //     }
 
-        bot.sendMessage(chatId, level_get, {parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
-        return;
-    }
+    //     bot.sendMessage(chatId, level_get, {message_thread_id: threadID, parse_mode: 'html', reply_to_message_id: msg.reply_to_message.message_id});
+    //     return;
+    // }
 
     for (let i = 0; i < level.length; i++) {
         if (parseInt(xpData.rows[0].xp) > level[i].level_xp) {
@@ -487,7 +543,7 @@ async function displayLevel(msg, match) {
     }
     
 
-    bot.sendMessage(chatId, level_get, {reply_to_message_id: msg.message_id});
+    bot.sendMessage(chatId, level_get, {message_thread_id: threadID, reply_to_message_id: msg.message_id});
 }
 
 var now = new Date();
@@ -524,7 +580,7 @@ async function infoRankJadwal(msg, match) {
         `🥈 ${withUser(users[1])} : ${xp_score.rows[1+(skipRank-1)].xp} ˣᵖ\n` +
         `🥉 ${withUser(users[2])} : ${xp_score.rows[2+(skipRank-1)].xp} ˣᵖ\n\n` +
         `Teruslah berinterakasi untuk meningkatkan XP dan menaikan Level, dengan tetap mematuhi Aturan tentunya.`,
-        { parse_mode: 'html', disable_notification: true }, msg);
+        { message_thread_id: threadID, parse_mode: 'html', disable_notification: true }, msg);
 }
 
 async function displayRanks(msg, match) {
@@ -534,6 +590,10 @@ async function displayRanks(msg, match) {
 
     if (msg.chat.type == "private") {
         bot.sendMessage(chatId, "Hanya kamu Nomor Satu disini, cek di Grup dong!...", {reply_to_message_id: msg.message_id});
+        return;
+    }
+
+    if (!threadCheck(msg)) {
         return;
     }
 
@@ -568,7 +628,7 @@ async function displayRanks(msg, match) {
 
 
     bot.sendMessage(chatId, users.join('\n'),
-        { parse_mode: 'html', disable_notification: true }, msg);
+        { message_thread_id: threadID, parse_mode: 'html', disable_notification: true }, msg);
 }
 
 async function displayRankHelp(msg, match) {
@@ -576,14 +636,19 @@ async function displayRankHelp(msg, match) {
     const userId = msg.from.id;
     const key = chatId + userId;
 
+    if (!threadCheck(msg)) {
+        return;
+    }
+
     if (match.input !== '/ranks') {
         return;
     }
 
     bot.sendMessage(chatId, `ada yang kurang nichh!\nharusnya <pre>/ranks nilai</pre>\ncontoh <pre>/ranks 10</pre>\n\nmaka akan menampilkan rank dari 1 sampai 10.`,
-        { parse_mode: 'html', disable_notification: true }, msg);
+        { message_thread_id: threadID, parse_mode: 'html', disable_notification: true }, msg);
 }
 
+// belum
 async function moderateContent(msg, match) {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
@@ -671,6 +736,10 @@ async function cheatXP(msg, match) {
     const userId = msg.from.id;
     const key = chatId + userId;
 
+    if (!threadCheck(msg)) {
+        return;
+    }
+
     const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
 
     if (!xpData.rows.length) {
@@ -703,6 +772,15 @@ async function showRankCanvas(msg, match) {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
     const key = chatId + userId;
+
+    if (msg.chat.type == "private") {
+        bot.sendMessage(chatId, "cek di Grup dong!...", {reply_to_message_id: msg.message_id});
+        return;
+    }
+
+    if (!threadCheck(msg)) {
+        return;
+    }
 
     var noPP = false;
     var memberPhotosToLink = '';
@@ -812,11 +890,13 @@ async function showRankCanvas(msg, match) {
     context.stroke();
     context.closePath();
 
+    console.log("aaaa " + xp_score[0].xp.toString().slice(0, 8));
+
     // Set text 1 xp and next xp
     context.font = "bold 35px Arial";
     context.textAlign = "left";
     context.fillStyle = "#ab003c";
-    context.fillText(`${xp_score[0].xp.slice(0, 8)} / ${xp_score[0].next_xp.slice(0, 9)}`, width / 2+20, height / 2+70);
+    context.fillText(`${xp_score[0].xp.toString().slice(0, 8)} / ${xp_score[0].next_xp.toString().slice(0, 9)}`, width / 2+20, height / 2+70);
 
     // Set text 1 group id/username
     context.font = "bold 30px Arial";
@@ -846,10 +926,10 @@ async function showRankCanvas(msg, match) {
 async function sendInfoSticker(msg, match, chatId, outputWebp, outputPng) {
     
     if (match[1] === 'png' || match[1] === 'PNG') {
-        await bot.sendDocument(chatId, outputPng, {});
+        await bot.sendDocument(chatId, outputPng, {message_thread_id: threadID});
     } else {
         if (match.input === '/rank' || match.input === '/rank@dreamcatcher_xpBot') {
-            await bot.sendSticker(chatId, outputWebp, {});
+            await bot.sendSticker(chatId, outputWebp, {message_thread_id: threadID});
         }
         
     }
@@ -870,4 +950,24 @@ function roundedImage(x,y,width,height,radius){
     context.lineTo(x, y + radius);
     context.quadraticCurveTo(x, y, x + radius, y);
     context.closePath();
+}
+
+
+// Matches "/echo [whatever]"
+bot.onText(/\/echo (.+)/, (msg, match) => {
+    // 'msg' is the received Message from Telegram
+    // 'match' is the result of executing the regexp above on the text content
+    // of the message
+  
+    const chatId = msg.chat.id;
+    const resp = match[1]; // the captured "whatever"
+
+    console.log(ch)
+  
+    // send back the matched "whatever" to the chat
+    bot.sendMessage(chatId, resp);
+});
+
+async function ch(msg) {
+    await bot.getChatMemberCount(msg.chat.id);
 }
