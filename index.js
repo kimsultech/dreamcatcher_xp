@@ -25,6 +25,9 @@ const canvas = createCanvas(width, height);
 const context = canvas.getContext('2d');
 // end create image for info rank/xp
 
+const si = require('systeminformation');
+const getOs = require('node:os');
+
 //const connectionString = process.env.POSTGRES_URL;
 const telegramToken = process.env.TELEGRAM_TOKEN;
 const GrupWhiteList = process.env.GROUP_WHITELIST;
@@ -39,6 +42,7 @@ const lessBotSpam = process.env.LESS_BOT_SPAM == "true";
 const botExpiration = (process.env.BOT_EXPIRATION || 3) * 1000;
 const skipRank = (parseInt(process.env.SKIP_RANK) || 1) + 1;
 const threadID = process.env.THREAD_ID;
+const botID = process.env.BOT_ID;
 
 const pool = new Pool({
     host: PG_HOST,
@@ -46,7 +50,7 @@ const pool = new Pool({
     database: PG_DB,
     password: PG_PASSWORD,
     port: PG_PORT,
-    ssl: { rejectUnauthorized: false } // enable for deploy on heroku
+    ssl: false
 });
 
 const resolver = new tgresolve.Tgresolve(telegramToken);
@@ -97,6 +101,16 @@ bot.onText(/\/cheat_xp/, cheatXP);
 bot.onText(/\/rank (.+)/, showRankCanvas);
 bot.onText(/\/rank(@\w+)?/, showRankCanvas);
 
+bot.onText(/\/status/, displayStatusBot);
+
+bot.onText(/\/add_quiz (.+)/, createQuiz);
+
+bot.onText(/\/id_foto/, getIDfoto);
+
+bot.on('text',     answerQuiz);
+
+bot.onText(/\/send_to/, sendMessageToGroup);
+
 const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 var notSleep = true;
@@ -121,6 +135,7 @@ async function incrementXP(msg, match) {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
     const key = chatId + userId;
+    const threadCheckId = msg.message_thread_id;
 
     var xp_rate = 1;
 
@@ -133,6 +148,9 @@ async function incrementXP(msg, match) {
     } else {
         xp_rate = 1
     }
+
+    if (threadCheckId == threadID)
+        return;
 
     // console.log('masih delay');
 
@@ -214,13 +232,13 @@ async function incrementXP(msg, match) {
                         `UPDATE users.users SET xp = $1
                         WHERE guid = $2`, [parseInt(xpData.rows[0].xp) + xp_rate, key]);
     
-                    if (isLink) {
-                        //infoChatLink(msg, match, 1);
-                    }
+                    // if (isLink) {
+                    //     infoChatLink(msg, match, 1);
+                    // }
     
-                    if (captionIsLink) {
-                        //infoChatLink(msg, match, 2);
-                    }
+                    // if (captionIsLink) {
+                    //     infoChatLink(msg, match, 2);
+                    // }
     
                     getRandomXP(msg, match);
     
@@ -548,7 +566,7 @@ async function displayLevel(msg, match) {
 
 var now = new Date();
 console.log(now);
-var millisTill10 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 00, 0, 0) - now;
+var millisTill10 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 0o0, 0, 0) - now;
 if (millisTill10 < 0) {
      millisTill10 += 86400000; // it's after 10am, try 10am tomorrow.
 }
@@ -596,6 +614,8 @@ async function displayRanks(msg, match) {
     if (!threadCheck(msg)) {
         return;
     }
+
+    bot.sendMessageNoSpam2(chatId, `Tunggu ya... aku ambil dulu data penduduknya di pak rt`, { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, parse_mode: 'html', disable_notification: true });
 
     let xp_score = [];
 
@@ -970,4 +990,215 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
 
 async function ch(msg) {
     await bot.getChatMemberCount(msg.chat.id);
+}
+
+
+async function displayStatusBot(msg, match) {
+
+    const startResp = Date.now();
+
+    // define all values, you want to get back
+    valueObject = {
+        osInfo: '*',
+        cpu: '*',
+        time: 'uptime',
+        battery: '*',
+        shell: '*'
+    }
+
+    if (msg.chat.type == "private") {
+        try {
+            const data = await si.get(valueObject);
+            console.log(data);
+
+            const responseTime = Date.now() - startResp;
+    
+            bot.sendMessage(msg.chat.id, statusServer(data, responseTime), { parse_mode: 'html' });
+        } catch (e) {
+            console.log(e)
+        }
+        return;
+    } else {
+        if (!threadCheck(msg)) {
+            return;
+        }
+    }
+
+    
+
+    //si.get(valueObject).then(data => console.log(data));
+
+    try {
+        const data = await si.get(valueObject);
+        
+        const responseTime = Date.now() - startResp;
+
+        bot.sendMessage(msg.chat.id, statusServer(data, responseTime), { message_thread_id: threadID, parse_mode: 'html' });
+    } catch (e) {
+        console.log(e)
+    }
+}
+
+function statusServer(data, responseTime) {
+    var i =
+    "======================= OS Info\n" +
+    "- platform: <code>" + data.osInfo.platform + "</code>\n" +
+    "- distro: <code>" + data.osInfo.distro + "</code>\n" +
+    "- release: <code>" + data.osInfo.release + "</code>\n" +
+    "- kernel: <code>" + data.osInfo.kernel + "</code>\n" +
+    "- arch: <code>" + data.osInfo.arch + "</code>\n" +
+    "- hostname: <code>" + data.osInfo.hostname + "</code>\n" +
+    "======================= CPU\n" +
+    "- type: <code>Snapdragon 845</code>\n" +
+    "- vendor: <code>" + data.cpu.vendor + "</code>\n" +
+    "- processors: <code>" + data.cpu.processors + "</code>\n" +
+    "- cores: <code>" + data.cpu.cores + "</code>\n" +
+    "======================= TIME\n" +
+    "- uptime: <b>" + uptimeConvert(data.time.uptime) + "</b>\n\n" +
+    "Response time: " + responseTime + "ms";
+    return i;
+}
+
+function uptimeConvert(secs) {
+    var seconds = parseInt(secs, 10);
+
+    var days = Math.floor(seconds / (3600*24));
+    seconds  -= days*3600*24;
+    var hrs   = Math.floor(seconds / 3600);
+    seconds  -= hrs*3600;
+    var mnts = Math.floor(seconds / 60);
+    seconds  -= mnts*60;
+    return days + " days, " + hrs + " hrs, " + mnts + " mins";
+}
+
+async function createQuiz(msg, match) {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const key = chatId + userId;
+
+
+    if (msg.chat.type != "private") {
+        return;
+    }
+
+
+    var qArray = match[1].split(",");
+    var timestamp = Date.now();
+
+    console.log(timestamp);
+
+    if (qArray.length == 4) {
+        try {
+            await pool.query(
+                `INSERT INTO quiz.quiz (id, question, answer, point, id_chat, id_creating, idfile_foto_correct)  
+                    VALUES ($1, $2, TRIM($3), $4, $5, $6, $7)`, [timestamp, qArray[0], qArray[1], parseInt(qArray[2]), chatId, userId, qArray[3]]);
+
+            bot.copyMessage(GrupWhiteListArray[1], msg.chat.id, msg.reply_to_message.message_id,
+                { caption: `🧩 <b>QuizCatcher</b> - (balas chat ini dengan jawaban)\n\n❔ ${qArray[0]}\n\n<b>Dapat ${qArray[2]} ˣᵖ kalau benar menjawab!</b>\n________________\n${timestamp}`, message_thread_id: threadID, parse_mode: 'html', disable_notification: false });
+
+            return true;
+        } catch (error) {
+            console.error(error.stack);
+            return false;
+        }
+    }
+
+    
+}
+
+async function answerQuiz(msg, match) {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const key = chatId + userId;
+
+
+    if (msg.chat.type == "private") {
+        return;
+    }
+
+    if (msg.reply_to_message.from.id == botID) {
+        var caption = msg.reply_to_message.caption;
+        let getQuizID = caption.match(new RegExp(`#\\n|.+$`, 'g'))[0];
+
+        const getQuizData = await pool.query(`SELECT id, question, answer, point, id_chat, id_creating, idfile_foto_correct FROM quiz.quiz WHERE id = $1`, [getQuizID]);
+
+        if (!getQuizData.rows.length) {
+            bot.sendMessage(chatId, `🤘🏻 Quiz ini sudah ada yang jawab dengan benar...`, {message_thread_id: threadID, reply_to_message_id: msg.message_id});
+            return;
+        }
+
+        console.log(getQuizData.rows[0].answer.toLowerCase().replace(/\s/g, "") + '-' + msg.text.toLowerCase().replace(/\s/g, ""));
+
+        if (getQuizData.rows[0].answer.toLowerCase().replace(/\s/g, "") === msg.text.toLowerCase().replace(/\s/g, "")) {
+            const xpData = await pool.query('SELECT * FROM users.users WHERE guid = $1 LIMIT 1;', [key]);
+            try {
+                // incre xp user who right answer quiz by point
+                await pool.query(
+                    `UPDATE users.users SET xp = xp + $1
+                    WHERE guid = $2`, [parseInt(getQuizData.rows[0].point), key]);
+
+                if (getQuizData.rows[0].idfile_foto_correct == "null" || getQuizData.rows[0].idfile_foto_correct.length < 6) {
+                    bot.sendMessage(chatId, `🥳 Daebak... Jawaban kamu benar\nKamu dapat ${getQuizData.rows[0].point} ˣᵖ`, {message_thread_id: threadID, reply_to_message_id: msg.message_id});
+                } else {
+                    const url = getQuizData.rows[0].idfile_foto_correct;
+                    bot.sendPhoto(chatId, url, {message_thread_id: threadID, reply_to_message_id: msg.message_id, caption: `🥳 Daebak.. Jawaban kamu benar\nKamu dapat ${getQuizData.rows[0].point} ˣᵖ`});
+                }
+
+                // dencre xp user who creating quiz by point
+                await pool.query(
+                    `UPDATE users.users SET xp = xp - $1
+                    WHERE guid = $2`, [parseInt(getQuizData.rows[0].point), chatId + parseInt(getQuizData.rows[0].id_creating)]);
+
+                await pool.query(`DELETE FROM quiz.quiz WHERE id = $1`, [getQuizID]);
+
+                return true;
+            } catch (error) {
+                console.error(error.stack);
+                return false;
+            }
+        } else {
+            try {
+                // dencre xp user who not right answer quiz by 5 point
+                await pool.query(
+                    `UPDATE users.users SET xp = xp - $1
+                    WHERE guid = $2`, [parseInt(5), key]);
+
+                bot.sendMessage(chatId, `😭 Heol... Jawaban kamu salah atau kurang tepat!\nˣᵖ kamu aku kurangin 5 😝`, {message_thread_id: threadID, reply_to_message_id: msg.message_id});
+
+                return true;
+            } catch (error) {
+                console.error(error.stack);
+                return false;
+            }
+        }
+        //console.log(getQuizData.rows[0].answer);
+    }
+    
+}
+
+async function getIDfoto(msg, match) {
+    if (msg.chat.type == "private") {
+        try {
+            bot.sendMessage(msg.chat.id, `file_id: <pre>${msg.reply_to_message.photo[msg.reply_to_message.photo.length-1].file_id}</pre>`, { parse_mode: 'html' });
+        } catch (e) {
+            console.log(e)
+        }
+        return;
+    }
+}
+
+async function sendMessageToGroup(msg, match) {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const key = chatId + userId;
+
+
+    if (msg.chat.type != "private") {
+        return;
+    }
+
+    console.log(match[1]);
+
+    bot.copyMessage(GrupWhiteListArray[1], msg.chat.id, msg.reply_to_message.message_id,
+        { message_thread_id: threadID, parse_mode: 'html', disable_notification: false });
 }
